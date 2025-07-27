@@ -1,26 +1,23 @@
 {
   "manifest_version": 2,
-  "name": "Google Arts & Culture - Firefox",
+  "name": "Google Arts & Culture",
   "version": "1.0.0",
   "description": "Transform your new tab into a gallery of amazing artworks from museums around the world",
-  
   "permissions": [
     "storage",
     "activeTab",
     "https://www.gstatic.com/*",
     "https://*.ggpht.com/*"
   ],
-
   "background": {
     "scripts": [
       "js/storage.js",
-      "js/assetdata.js", 
+      "js/assetdata.js",
       "js/settings.js",
       "js/background.js"
     ],
     "persistent": false
   },
-
   "browser_action": {
     "default_title": "Google Arts & Culture",
     "default_icon": {
@@ -30,25 +27,20 @@
       "128": "icons/icon-128.png"
     }
   },
-
   "chrome_url_overrides": {
     "newtab": "newtab/newtab.html"
   },
-
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": false
   },
-
   "icons": {
     "16": "icons/icon-16.png",
-    "32": "icons/icon-32.png", 
+    "32": "icons/icon-32.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-
   "content_security_policy": "script-src 'self'; object-src 'self'",
-
   "web_accessible_resources": [
     "fonts/*"
   ]
