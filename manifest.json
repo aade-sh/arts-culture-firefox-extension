@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Google Arts & Culture",
+  "name": "Art Gallery New Tab",
   "version": "1.0.0",
-  "description": "Transform your new tab into a gallery of amazing artworks from museums around the world",
+  "description": "Transform your new tab into a gallery of amazing artworks from Google Arts & Culture, Metropolitan Museum, and other world-class museums",
   "permissions": [
     "storage",
     "activeTab",
@@ -25,7 +25,7 @@
     "persistent": false
   },
   "browser_action": {
-    "default_title": "Google Arts & Culture",
+    "default_title": "Art Gallery New Tab",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
@@ -35,10 +35,6 @@
   },
   "chrome_url_overrides": {
     "newtab": "newtab/newtab.html"
-  },
-  "options_ui": {
-    "page": "options/options.html",
-    "open_in_tab": false
   },
   "icons": {
     "16": "icons/icon-16.png",
