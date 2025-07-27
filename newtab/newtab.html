@@ -60,6 +60,13 @@
             </div>
             <div class="modal-body">
                 <div class="setting-item">
+                    <label for="art-provider">Art Provider</label>
+                    <select id="art-provider">
+                        <option value="google-arts">Google Arts & Culture</option>
+                        <option value="met-museum">Metropolitan Museum of Art</option>
+                    </select>
+                </div>
+                <div class="setting-item">
                     <label for="turnover-always">Always show new artwork on new tab</label>
                     <input type="checkbox" id="turnover-always">
                 </div>
@@ -69,6 +76,10 @@
 
     <!-- Scripts -->
     <script src="../js/storage.js"></script>
+    <script src="../js/providers/art-provider-base.js"></script>
+    <script src="../js/providers/google-arts-provider.js"></script>
+    <script src="../js/providers/met-museum-provider.js"></script>
+    <script src="../js/providers/art-provider-manager.js"></script>
     <script src="../js/assetdata.js"></script>
     <script src="../js/settings.js"></script>
     <script src="newtab.js"></script>

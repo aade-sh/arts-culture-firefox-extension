@@ -13,10 +13,26 @@ class NewTabPage {
       this.userSettings = await Settings.getUserSettings();
       this.applyUserSettings();
 
-      await AssetData.syncData();
+      // Set the art provider before syncing data
+      const providerName = this.userSettings[NewTabSetting.ART_PROVIDER] || 'google-arts';
+      console.log('Setting art provider to:', providerName);
+      await ArtProviders.setCurrentProvider(providerName);
+
+      console.log('Syncing data for provider:', providerName);
+      const syncSuccess = await AssetData.syncData();
+      if (!syncSuccess) {
+        throw new Error('Failed to sync asset data');
+      }
+
       this.totalAssets = await AssetData.syncedAssetCount();
+      console.log('Total assets available:', this.totalAssets);
+
+      if (this.totalAssets === 0) {
+        throw new Error('No assets available from current provider');
+      }
 
       this.currentAssetIndex = await Settings.getCurrentAssetIndex();
+      console.log('Current asset index:', this.currentAssetIndex);
 
       chrome.runtime.sendMessage({
         type: 'requestCurrentAsset'
@@ -65,9 +81,27 @@ class NewTabPage {
 
   async displayCurrentImage() {
     try {
+      // Ensure we have the latest asset count and valid index
+      this.totalAssets = await AssetData.syncedAssetCount();
+      
+      // Reset index if it's out of bounds for current provider
+      if (this.currentAssetIndex >= this.totalAssets) {
+        this.currentAssetIndex = 0;
+        await Settings.writeCurrentAssetIndex(0);
+      }
+
       const asset = await AssetData.getAsset(this.currentAssetIndex);
       if (!asset) {
-        throw new Error('Asset not found');
+        console.error(`Asset at index ${this.currentAssetIndex} not found. Total assets: ${this.totalAssets}`);
+        // Try to reset to first asset
+        this.currentAssetIndex = 0;
+        await Settings.writeCurrentAssetIndex(0);
+        const firstAsset = await AssetData.getAsset(0);
+        if (!firstAsset) {
+          throw new Error('No assets available from current provider');
+        }
+        await this.displayCurrentImage();
+        return;
       }
 
       await AssetData.loadImage(this.currentAssetIndex);
@@ -75,14 +109,11 @@ class NewTabPage {
       this.updateArtInfo(asset);
       this.updateBackgroundImage(asset);
 
-      let nextIndex = this.currentAssetIndex + 1;
-      if (nextIndex >= this.totalAssets) {
-        nextIndex = 0;
-      }
-      AssetData.loadImage(nextIndex);
+      // Don't preload next image to avoid bulk downloading
       
     } catch (error) {
       console.error('Failed to display current image:', error);
+      this.showError('Failed to load artwork. Please try refreshing the page.');
     }
   }
 
@@ -124,7 +155,16 @@ class NewTabPage {
     document.getElementById('info-btn').addEventListener('click', async () => {
       const asset = await AssetData.getAsset(this.currentAssetIndex);
       if (asset && asset.link) {
-        chrome.tabs.create({ url: `https://artsandculture.google.com/asset/${asset.link}` });
+        // Use the provider-specific link directly
+        let url = asset.link;
+        
+        // For Google Arts, we need to construct the full URL
+        if (asset.provider === 'google-arts') {
+          url = `https://artsandculture.google.com/asset/${asset.link}`;
+        }
+        // For Met Museum and others, asset.link should already be the full URL
+        
+        chrome.tabs.create({ url });
       }
     });
 
@@ -152,11 +192,12 @@ class NewTabPage {
   }
 
   setupSettingsListeners() {
-    const settingsMap = {
+    // Handle checkboxes
+    const checkboxMap = {
       'turnover-always': NewTabSetting.TURNOVER_ALWAYS
     };
 
-    for (const [elementId, settingKey] of Object.entries(settingsMap)) {
+    for (const [elementId, settingKey] of Object.entries(checkboxMap)) {
       const checkbox = document.getElementById(elementId);
       checkbox.checked = this.userSettings[settingKey];
       
@@ -172,6 +213,50 @@ class NewTabPage {
         });
       });
     }
+
+    // Handle art provider selection
+    const providerSelect = document.getElementById('art-provider');
+    providerSelect.value = this.userSettings[NewTabSetting.ART_PROVIDER];
+    
+    providerSelect.addEventListener('change', async (e) => {
+      const newProvider = e.target.value;
+      this.userSettings[NewTabSetting.ART_PROVIDER] = newProvider;
+      await Settings.writeUserSetting(NewTabSetting.ART_PROVIDER, newProvider);
+      
+      // Update the provider and reset to first asset
+      await ArtProviders.setCurrentProvider(newProvider);
+      this.currentAssetIndex = 0;
+      await Settings.writeCurrentAssetIndex(0);
+      
+      // Sync data first, then get count (avoid parallel calls)
+      await AssetData.syncData();
+      this.totalAssets = await AssetData.syncedAssetCount();
+      console.log(`Provider switched to ${newProvider}, ${this.totalAssets} assets available`);
+      if (this.totalAssets > 0) {
+        await this.displayCurrentImage();
+      } else {
+        // Show loading while we wait for the first asset to be fetched
+        this.showLoading();
+        
+        // Wait for at least one asset to be available
+        const checkAssets = async () => {
+          const count = await AssetData.syncedAssetCount();
+          if (count > 0) {
+            this.totalAssets = count;
+            await this.displayCurrentImage();
+            this.hideLoading();
+          } else {
+            setTimeout(checkAssets, 1000); // Check again in 1 second
+          }
+        };
+        checkAssets();
+      }
+      
+      chrome.runtime.sendMessage({
+        type: 'userSettingsUpdate',
+        payload: { key: NewTabSetting.ART_PROVIDER, value: newProvider }
+      });
+    });
   }
 
   openSettings() {

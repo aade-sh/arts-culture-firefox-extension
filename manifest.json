@@ -7,11 +7,17 @@
     "storage",
     "activeTab",
     "https://www.gstatic.com/*",
-    "https://*.ggpht.com/*"
+    "https://*.ggpht.com/*",
+    "https://collectionapi.metmuseum.org/*",
+    "https://images.metmuseum.org/*"
   ],
   "background": {
     "scripts": [
       "js/storage.js",
+      "js/providers/art-provider-base.js",
+      "js/providers/google-arts-provider.js",
+      "js/providers/met-museum-provider.js",
+      "js/providers/art-provider-manager.js",
       "js/assetdata.js",
       "js/settings.js",
       "js/background.js"

@@ -241,6 +241,16 @@ body {
   cursor: pointer;
 }
 
+.setting-item select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 200px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .art-info {

@@ -1,9 +1,11 @@
 const NewTabSetting = {
   TURNOVER_ALWAYS: 'turnoverAlways',
+  ART_PROVIDER: 'artProvider',
 };
 
 const DEFAULT_USER_SETTINGS = {
   [NewTabSetting.TURNOVER_ALWAYS]: false,
+  [NewTabSetting.ART_PROVIDER]: 'google-arts',
 };
 
 class Settings {

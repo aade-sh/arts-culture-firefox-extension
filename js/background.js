@@ -18,6 +18,10 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       console.log('Default settings initialized');
     }
 
+    // Set up the art provider
+    const userSettings = await Settings.getUserSettings();
+    await ArtProviders.setCurrentProvider(userSettings[NewTabSetting.ART_PROVIDER] || 'google-arts');
+
     const syncSuccess = await AssetData.syncData();
     if (!syncSuccess) {
       console.error('Failed to sync asset data during installation');
@@ -34,16 +38,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     await Settings.writeCurrentAssetIndex(currentAssetIndex);
     currentBackgroundAssetIndex = currentAssetIndex;
 
-    let nextAssetIndex = currentAssetIndex + 1;
-    if (nextAssetIndex >= totalAssets) {
-      nextAssetIndex = 0;
-    }
-
+    // Only preload the current image, not bulk downloading
     const currentLoad = await AssetData.loadImage(currentAssetIndex);
-    const nextLoad = await AssetData.loadImage(nextAssetIndex);
 
-    if (!currentLoad || !nextLoad) {
-      console.warn('Failed to pre-load some images');
+    if (!currentLoad) {
+      console.warn('Failed to pre-load current image');
     }
 
     console.log('Extension setup completed successfully');
@@ -83,39 +82,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleRotateImage(currentAssetIndex) {
   try {
+    // Don't call syncedAssetCount() in background - this triggers unnecessary syncs
+    // The frontend already has the asset count and validates the index
+    console.log('🔄 Background rotating to index:', currentAssetIndex + 1);
+
     currentAssetIndex += 1;
-    const totalAssets = await AssetData.syncedAssetCount();
-
-    if (currentAssetIndex >= totalAssets) {
-      currentAssetIndex = 0;
-    }
-
-    let nextAssetIndex = currentAssetIndex + 1;
-    if (nextAssetIndex >= totalAssets) {
-      nextAssetIndex = 0;  
-    }
-
-    const result = await AssetData.loadImage(nextAssetIndex);
-
-    if (result) {
-      await Settings.writeCurrentAssetIndex(currentAssetIndex);
-      currentBackgroundAssetIndex = currentAssetIndex;
-      
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          if (tab.url && tab.url.includes('newtab.html')) {
-            chrome.tabs.sendMessage(tab.id, {
-              type: ExtMessageType.UPDATE_ASSET,
-              payload: { newAssetIndex: currentAssetIndex }
-            }, () => {
-              if (chrome.runtime.lastError) {}
-            });
-          }
-        });
+    // Note: We can't validate max bounds here since each context has separate provider instances
+    // The frontend will handle bounds checking when it receives the update
+    
+    // Just update the index and notify frontend - don't load images in background
+    await Settings.writeCurrentAssetIndex(currentAssetIndex);
+    currentBackgroundAssetIndex = currentAssetIndex;
+    
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        if (tab.url && tab.url.includes('newtab.html')) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: ExtMessageType.UPDATE_ASSET,
+            payload: { newAssetIndex: currentAssetIndex }
+          }, () => {
+            if (chrome.runtime.lastError) {}
+          });
+        }
       });
-    } else {
-      console.error('Failed to load next image');
-    }
+    });
   } catch (error) {
     console.error('Error rotating image:', error);
   }
@@ -123,9 +113,18 @@ async function handleRotateImage(currentAssetIndex) {
 
 async function handleUserSettingsUpdate(payload) {
   try {
-    if (payload && payload.key && typeof payload.value === 'boolean') {
+    if (payload && payload.key) {
       await Settings.writeUserSetting(payload.key, payload.value);
       console.log(`Updated setting ${payload.key} to ${payload.value}`);
+      
+      // If the art provider changed, update the background script's provider too
+      if (payload.key === NewTabSetting.ART_PROVIDER) {
+        await ArtProviders.setCurrentProvider(payload.value);
+        // Reset the asset index since we're switching providers
+        currentBackgroundAssetIndex = 0;
+        await Settings.writeCurrentAssetIndex(0);
+        console.log(`Switched to art provider: ${payload.value}`);
+      }
     }
   } catch (error) {
     console.error('Error updating user setting:', error);
