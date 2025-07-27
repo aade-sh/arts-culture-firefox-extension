@@ -10,29 +10,20 @@ class NewTabPage {
     try {
       this.showLoading();
 
-      this.userSettings = await Settings.getUserSettings();
-      this.applyUserSettings();
+      this.userSettings = await ArtManager.instance.getUserSettings();
 
-      // Set the art provider before syncing data
-      const providerName = this.userSettings[NewTabSetting.ART_PROVIDER] || 'google-arts';
-      console.log('Setting art provider to:', providerName);
-      await ArtProviders.setCurrentProvider(providerName);
-
-      console.log('Syncing data for provider:', providerName);
-      const syncSuccess = await AssetData.syncData();
+      const syncSuccess = await ArtManager.instance.syncData();
       if (!syncSuccess) {
         throw new Error('Failed to sync asset data');
       }
 
-      this.totalAssets = await AssetData.syncedAssetCount();
-      console.log('Total assets available:', this.totalAssets);
+      this.totalAssets = await ArtManager.instance.syncedAssetCount();
 
       if (this.totalAssets === 0) {
         throw new Error('No assets available from current provider');
       }
 
-      this.currentAssetIndex = await Settings.getCurrentAssetIndex();
-      console.log('Current asset index:', this.currentAssetIndex);
+      this.currentAssetIndex = await ArtManager.instance.getCurrentIndex();
 
       chrome.runtime.sendMessage({
         type: 'requestCurrentAsset'
@@ -52,7 +43,6 @@ class NewTabPage {
 
       this.hideLoading();
 
-      console.log('New tab page initialized');
     } catch (error) {
       console.error('Failed to initialize new tab page:', error);
       this.showError('Failed to load artwork');
@@ -82,21 +72,21 @@ class NewTabPage {
   async displayCurrentImage() {
     try {
       // Ensure we have the latest asset count and valid index
-      this.totalAssets = await AssetData.syncedAssetCount();
+      this.totalAssets = await ArtManager.instance.syncedAssetCount();
       
       // Reset index if it's out of bounds for current provider
       if (this.currentAssetIndex >= this.totalAssets) {
         this.currentAssetIndex = 0;
-        await Settings.writeCurrentAssetIndex(0);
+        await ArtManager.instance.setCurrentIndex(0);
       }
 
-      const asset = await AssetData.getAsset(this.currentAssetIndex);
+      const asset = await ArtManager.instance.getAsset(this.currentAssetIndex);
       if (!asset) {
         console.error(`Asset at index ${this.currentAssetIndex} not found. Total assets: ${this.totalAssets}`);
         // Try to reset to first asset
         this.currentAssetIndex = 0;
-        await Settings.writeCurrentAssetIndex(0);
-        const firstAsset = await AssetData.getAsset(0);
+        await ArtManager.instance.setCurrentIndex(0);
+        const firstAsset = await ArtManager.instance.getAsset(0);
         if (!firstAsset) {
           throw new Error('No assets available from current provider');
         }
@@ -104,10 +94,10 @@ class NewTabPage {
         return;
       }
 
-      await AssetData.loadImage(this.currentAssetIndex);
+      await ArtManager.instance.loadImage(this.currentAssetIndex);
 
       this.updateArtInfo(asset);
-      this.updateBackgroundImage(asset);
+      await this.updateBackgroundImage(asset);
 
       // Don't preload next image to avoid bulk downloading
       
@@ -135,8 +125,8 @@ class NewTabPage {
     document.getElementById('art-attribution').textContent = asset.attribution || '';
   }
 
-  updateBackgroundImage(asset) {
-    const imageUrl = AssetData.getImageUrl(this.currentAssetIndex);
+  async updateBackgroundImage(asset) {
+    const imageUrl = await ArtManager.instance.getDisplayImageUrl(this.currentAssetIndex);
     const backgroundImage = document.getElementById('background-image');
     
     if (imageUrl) {
@@ -145,25 +135,14 @@ class NewTabPage {
     }
   }
 
-  applyUserSettings() {
-  }
 
   setupEventListeners() {
     document.getElementById('rotate-btn').addEventListener('click', 
       () => this.rotateToNextImage());
 
     document.getElementById('info-btn').addEventListener('click', async () => {
-      const asset = await AssetData.getAsset(this.currentAssetIndex);
-      if (asset && asset.link) {
-        // Use the provider-specific link directly
-        let url = asset.link;
-        
-        // For Google Arts, we need to construct the full URL
-        if (asset.provider === 'google-arts') {
-          url = `https://artsandculture.google.com/asset/${asset.link}`;
-        }
-        // For Met Museum and others, asset.link should already be the full URL
-        
+      const url = await ArtManager.instance.getDetailsUrl(this.currentAssetIndex);
+      if (url) {
         chrome.tabs.create({ url });
       }
     });
@@ -203,7 +182,7 @@ class NewTabPage {
       
       checkbox.addEventListener('change', async (e) => {
         this.userSettings[settingKey] = e.target.checked;
-        await Settings.writeUserSetting(settingKey, e.target.checked);
+        await ArtManager.instance.setTurnoverAlways(e.target.checked);
         
         this.applyUserSettings();
         
@@ -221,17 +200,16 @@ class NewTabPage {
     providerSelect.addEventListener('change', async (e) => {
       const newProvider = e.target.value;
       this.userSettings[NewTabSetting.ART_PROVIDER] = newProvider;
-      await Settings.writeUserSetting(NewTabSetting.ART_PROVIDER, newProvider);
       
       // Update the provider and reset to first asset
-      await ArtProviders.setCurrentProvider(newProvider);
+      await ArtManager.instance.setCurrentProvider(newProvider);
       this.currentAssetIndex = 0;
-      await Settings.writeCurrentAssetIndex(0);
+      await ArtManager.instance.setCurrentIndex(0);
       
       // Sync data first, then get count (avoid parallel calls)
-      await AssetData.syncData();
-      this.totalAssets = await AssetData.syncedAssetCount();
-      console.log(`Provider switched to ${newProvider}, ${this.totalAssets} assets available`);
+      await ArtManager.instance.syncData();
+      this.totalAssets = await ArtManager.instance.syncedAssetCount();
+
       if (this.totalAssets > 0) {
         await this.displayCurrentImage();
       } else {
@@ -240,7 +218,7 @@ class NewTabPage {
         
         // Wait for at least one asset to be available
         const checkAssets = async () => {
-          const count = await AssetData.syncedAssetCount();
+          const count = await ArtManager.instance.syncedAssetCount();
           if (count > 0) {
             this.totalAssets = count;
             await this.displayCurrentImage();
@@ -271,7 +249,7 @@ class NewTabPage {
     if (newAssetIndex !== undefined) {
       this.currentAssetIndex = newAssetIndex;
     } else {
-      this.currentAssetIndex = await Settings.getCurrentAssetIndex();
+      this.currentAssetIndex = await ArtManager.instance.getCurrentIndex();
     }
     await this.displayCurrentImage();
   }

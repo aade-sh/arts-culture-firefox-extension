@@ -1,34 +1,40 @@
 class ExtensionStorage {
-  static async writeData(key, data, local = false) {
+  static async writeData(key, data) {
     try {
-      const storageArea = local ? chrome.storage.local : chrome.storage.sync;
-      await storageArea.set({[key]: data});
-      console.log(`Storage write - key: ${key}, local: ${local}, data length: ${typeof data === 'string' ? data.length : 'N/A'}`);
+      await chrome.storage.local.set({[key]: data});
+
     } catch (error) {
       console.error(`Error writing storage key ${key}:`, error);
       throw error;
     }
   }
 
-  static async readData(key, local = false) {
+  static async readData(key) {
     try {
-      const storageArea = local ? chrome.storage.local : chrome.storage.sync;
-      const result = await storageArea.get([key]);
-      console.log(`Storage read - key: ${key}, local: ${local}, result:`, result);
-      return result && typeof result === 'object' && result[key] !== undefined ? result[key] : '';
+      const result = await chrome.storage.local.get([key]);
+
+      return result && typeof result === 'object' && result[key] !== undefined ? result[key] : null;
     } catch (error) {
       console.error(`Error reading storage key ${key}:`, error);
-      return '';
+      return null;
     }
   }
 
-  static async removeData(key, local = false) {
-    const storageArea = local ? chrome.storage.local : chrome.storage.sync;
-    await storageArea.remove(key);
+  static async removeData(key, local = true) {
+    await chrome.storage.local.remove(key);
   }
 
-  static async clear(local = false) {
-    const storageArea = local ? chrome.storage.local : chrome.storage.sync;
-    await storageArea.clear();
+  static async clear(local = true) {
+    await chrome.storage.local.clear();
+  }
+
+  // New utility methods for direct value storage (no JSON serialization needed)
+  static async writeValue(key, value) {
+    return this.writeData(key, value);
+  }
+
+  static async readValue(key, defaultValue = null) {
+    const result = await this.readData(key);
+    return result !== null ? result : defaultValue;
   }
 }

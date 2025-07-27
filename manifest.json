@@ -14,11 +14,13 @@
   "background": {
     "scripts": [
       "js/storage.js",
+      "js/cache-manager.js",
+      "js/models/google-arts-asset.js",
+      "js/models/met-museum-asset.js",
       "js/providers/art-provider-base.js",
       "js/providers/google-arts-provider.js",
       "js/providers/met-museum-provider.js",
-      "js/providers/art-provider-manager.js",
-      "js/assetdata.js",
+      "js/art-manager.js",
       "js/settings.js",
       "js/background.js"
     ],
