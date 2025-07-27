@@ -1,4 +1,3 @@
-// Storage utility functions
 class ExtensionStorage {
   static async writeData(key, data, local = false) {
     try {

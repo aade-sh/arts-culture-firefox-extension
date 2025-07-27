@@ -1,4 +1,3 @@
-// Asset data management
 class AssetData {
   static CACHE_OPTIONS = { ignoreMethod: true, ignoreSearch: true, ignoreVary: true };
   static DATA_REQUEST_OPTIONS = { method: 'GET', headers: { Accept: 'application/json' } };
@@ -11,13 +10,11 @@ class AssetData {
     try {
       console.log('Syncing asset data...');
       
-      // Check cache timestamp
       const cachedTimestamp = await ExtensionStorage.readData('json_cache_timestamp', true);
       console.log('Cached timestamp:', cachedTimestamp);
       const now = Date.now();
       const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       
-      // If cached data is less than 24 hours old, use it
       if (cachedTimestamp && cachedTimestamp !== '' && (now - parseInt(cachedTimestamp)) < oneDay) {
         const cachedData = await ExtensionStorage.readData('cached_asset_data', true);
         if (cachedData && cachedData !== '') {
@@ -31,7 +28,6 @@ class AssetData {
         }
       }
 
-      // Fetch fresh data
       console.log('Fetching fresh data from:', this.JSON_DATA_URL);
       const response = await fetch(this.JSON_DATA_URL, {
         ...this.DATA_REQUEST_OPTIONS,
@@ -47,7 +43,6 @@ class AssetData {
       console.log('Fetched data entries:', data.length);
       this.syncedAssetData = data;
       
-      // Cache the data
       await ExtensionStorage.writeData('cached_asset_data', JSON.stringify(data), true);
       await ExtensionStorage.writeData('json_cache_timestamp', now.toString(), true);
       
@@ -86,12 +81,10 @@ class AssetData {
 
       const imageUrl = asset.image + '=s1920-rw';
       
-      // Try to get from cache first
       const cache = await caches.open('gac-images');
       let cachedResponse = await cache.match(imageUrl, this.CACHE_OPTIONS);
       
       if (!cachedResponse) {
-        // Fetch and cache the image
         const fetchResponse = await fetch(imageUrl, this.IMAGE_REQUEST_OPTIONS);
         if (!fetchResponse.ok) {
           throw new Error(`Failed to fetch image: ${fetchResponse.status}`);
@@ -101,11 +94,9 @@ class AssetData {
         cachedResponse = fetchResponse;
       }
 
-      // Convert to data URL for storage
       const blob = await cachedResponse.blob();
       const dataUrl = await this.blobToDataUrl(blob);
       
-      // Store the data URL in the asset
       this.syncedAssetData[imageId].data_url = dataUrl;
       
       return true;

@@ -1,4 +1,3 @@
-// User settings management
 const NewTabSetting = {
   TURNOVER_ALWAYS: 'turnoverAlways',
   APPS_BUTTON_HIDDEN: 'appsButtonHidden',

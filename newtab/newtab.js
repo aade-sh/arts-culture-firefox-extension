@@ -1,4 +1,3 @@
-// New tab page functionality
 class NewTabPage {
   constructor() {
     this.currentAssetIndex = 0;
@@ -9,31 +8,24 @@ class NewTabPage {
 
   async init() {
     try {
-      // Show loading state
       this.showLoading();
 
-      // Load user settings
       this.userSettings = await Settings.getUserSettings();
       this.applyUserSettings();
 
-      // Ensure asset data is synced
       await AssetData.syncData();
       this.totalAssets = await AssetData.syncedAssetCount();
 
-      // Get current asset index
       this.currentAssetIndex = await Settings.getCurrentAssetIndex();
 
-      // Check if we should rotate on new tab
       if (this.userSettings[NewTabSetting.TURNOVER_ALWAYS]) {
         await this.rotateToNextImage();
       } else {
         await this.displayCurrentImage();
       }
 
-      // Setup event listeners
       this.setupEventListeners();
 
-      // Hide loading and show content
       this.hideLoading();
 
       console.log('New tab page initialized');
@@ -70,19 +62,16 @@ class NewTabPage {
         throw new Error('Asset not found');
       }
 
-      // Load the image if not already loaded
       await AssetData.loadImage(this.currentAssetIndex);
 
-      // Update UI
       this.updateArtInfo(asset);
       this.updateBackgroundImage(asset);
 
-      // Preload next image
       let nextIndex = this.currentAssetIndex + 1;
       if (nextIndex >= this.totalAssets) {
         nextIndex = 0;
       }
-      AssetData.loadImage(nextIndex); // Don't await, just start loading
+      AssetData.loadImage(nextIndex);
       
     } catch (error) {
       console.error('Failed to display current image:', error);
@@ -91,14 +80,11 @@ class NewTabPage {
 
   async rotateToNextImage() {
     try {
-      // Send rotation message to background
       chrome.runtime.sendMessage({
         type: 'rotateImage',
         payload: { currentAssetIndex: this.currentAssetIndex }
       });
 
-      // The background script will send us an UPDATE_ASSET message when ready
-      // No need to manually refresh here
     } catch (error) {
       console.error('Failed to rotate image:', error);
     }
@@ -121,15 +107,12 @@ class NewTabPage {
   }
 
   applyUserSettings() {
-    // Settings applied (no quick access buttons to hide/show)
   }
 
   setupEventListeners() {
-    // Rotate button
     document.getElementById('rotate-btn').addEventListener('click', 
       () => this.rotateToNextImage());
 
-    // Info button - open arts and culture link
     document.getElementById('info-btn').addEventListener('click', async () => {
       const asset = await AssetData.getAsset(this.currentAssetIndex);
       if (asset && asset.link) {
@@ -137,26 +120,21 @@ class NewTabPage {
       }
     });
 
-    // Settings button
     document.getElementById('settings-btn').addEventListener('click', 
       () => this.openSettings());
 
 
-    // Settings modal
     document.getElementById('close-settings').addEventListener('click', 
       () => this.closeSettings());
 
-    // Settings checkboxes
     this.setupSettingsListeners();
 
-    // Listen for background messages
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === 'updateAsset') {
         this.handleAssetUpdate(message.payload?.newAssetIndex);
       }
     });
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.key === ' ' || e.key === 'ArrowRight') {
         e.preventDefault();
@@ -178,10 +156,8 @@ class NewTabPage {
         this.userSettings[settingKey] = e.target.checked;
         await Settings.writeUserSetting(settingKey, e.target.checked);
         
-        // Apply settings immediately
         this.applyUserSettings();
         
-        // Notify background script
         chrome.runtime.sendMessage({
           type: 'userSettingsUpdate',
           payload: { key: settingKey, value: e.target.checked }
@@ -199,7 +175,6 @@ class NewTabPage {
   }
 
   async handleAssetUpdate(newAssetIndex) {
-    // Update current asset index and display
     if (newAssetIndex !== undefined) {
       this.currentAssetIndex = newAssetIndex;
     } else {
@@ -209,7 +184,6 @@ class NewTabPage {
   }
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   new NewTabPage();
 });

@@ -1,26 +1,20 @@
-// Background script for Firefox GAC extension
 
-// Scripts are loaded via manifest.json
 
-// Message types
 const ExtMessageType = {
   ROTATE_IMAGE: 'rotateImage',
   UPDATE_ASSET: 'updateAsset',
   USER_SETTINGS_UPDATE: 'userSettingsUpdate'
 };
 
-// Extension installation handler
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Extension installed/updated:', details.reason);
   
   try {
-    // Initialize default settings on first install
     if (details.reason === 'install') {
       await Settings.writeDefaultUserSettings();
       console.log('Default settings initialized');
     }
 
-    // Sync asset data
     const syncSuccess = await AssetData.syncData();
     if (!syncSuccess) {
       console.error('Failed to sync asset data during installation');
@@ -30,14 +24,12 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     const totalAssets = await AssetData.syncedAssetCount();
     console.log(`Total assets available: ${totalAssets}`);
 
-    // Initialize current asset index
     let currentAssetIndex = await Settings.getCurrentAssetIndex();
     if (currentAssetIndex >= totalAssets) {
       currentAssetIndex = 0;
     }
     await Settings.writeCurrentAssetIndex(currentAssetIndex);
 
-    // Pre-load current and next images
     let nextAssetIndex = currentAssetIndex + 1;
     if (nextAssetIndex >= totalAssets) {
       nextAssetIndex = 0;
@@ -56,7 +48,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
-// Browser action click (extension icon)
 chrome.browserAction.onClicked.addListener((tab) => {
   const siteUrl = 'https://artsandculture.google.com?utm_source=firefox_extension&utm_medium=default_link&utm_campaign=firefox_extension';
   chrome.tabs.create({
@@ -66,7 +57,6 @@ chrome.browserAction.onClicked.addListener((tab) => {
   });
 });
 
-// Runtime message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Received message:', message);
   
@@ -81,10 +71,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('Unknown message type:', message.type);
   }
   
-  return false; // Synchronous response
+  return false;
 });
 
-// Handle image rotation
 async function handleRotateImage(currentAssetIndex) {
   try {
     currentAssetIndex += 1;
@@ -99,23 +88,18 @@ async function handleRotateImage(currentAssetIndex) {
       nextAssetIndex = 0;  
     }
 
-    // Pre-load the next image
     const result = await AssetData.loadImage(nextAssetIndex);
 
     if (result) {
       await Settings.writeCurrentAssetIndex(currentAssetIndex);
       
-      // Notify all tabs about the asset update
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach(tab => {
           chrome.tabs.sendMessage(tab.id, {
             type: ExtMessageType.UPDATE_ASSET,
             payload: { newAssetIndex: currentAssetIndex }
           }, () => {
-            // Ignore errors for tabs that can't receive messages
-            if (chrome.runtime.lastError) {
-              // Silently ignore
-            }
+            if (chrome.runtime.lastError) {}
           });
         });
       });
@@ -127,7 +111,6 @@ async function handleRotateImage(currentAssetIndex) {
   }
 }
 
-// Handle user settings update
 async function handleUserSettingsUpdate(payload) {
   try {
     if (payload && payload.key && typeof payload.value === 'boolean') {
