@@ -65,42 +65,41 @@ export function useArtState() {
 
   const displayCurrentImage = useCallback(async () => {
     try {
-      // Get the current index from ArtManager to ensure we have the latest value
       const currentIndex = await window.ArtManager.instance.getCurrentIndex();
-      console.log('displayCurrentImage using index:', currentIndex);
-      
-      // Ensure we have the latest asset count and valid index
       const latestTotalAssets = await window.ArtManager.instance.syncedAssetCount();
       let validIndex = currentIndex;
 
-      // Reset index if it's out of bounds for current provider
       if (validIndex >= latestTotalAssets) {
         validIndex = 0;
         await window.ArtManager.instance.setCurrentIndex(0);
       }
 
-      const asset = await window.ArtManager.instance.getAsset(validIndex);
+      let asset = await window.ArtManager.instance.getAsset(validIndex);
+      
+      // If asset is null, try to find the next valid asset (for Met Museum)
       if (!asset) {
-        console.error(`Asset at index ${validIndex} not found. Total assets: ${latestTotalAssets}`);
-        // Try to reset to first asset
-        validIndex = 0;
-        await window.ArtManager.instance.setCurrentIndex(0);
-        const firstAsset = await window.ArtManager.instance.getAsset(0);
-        if (!firstAsset) {
-          throw new Error('No assets available from current provider');
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (!asset && attempts < maxAttempts) {
+          validIndex++;
+          if (validIndex >= latestTotalAssets) {
+            validIndex = 0;
+          }
+          
+          asset = await window.ArtManager.instance.getAsset(validIndex);
+          attempts++;
         }
-        updateState({ 
-          currentAssetIndex: validIndex, 
-          totalAssets: latestTotalAssets, 
-          currentAsset: firstAsset 
-        });
-        return;
+        
+        if (!asset) {
+          throw new Error('No valid assets available from current provider');
+        }
+        
+        await window.ArtManager.instance.setCurrentIndex(validIndex);
       }
 
-      console.log('Loading asset:', asset.title);
       await window.ArtManager.instance.loadImage(validIndex);
       const imageUrl = await window.ArtManager.instance.getDisplayImageUrl(validIndex);
-      console.log('Got image URL:', imageUrl);
 
       updateState({
         currentAssetIndex: validIndex,
@@ -115,13 +114,11 @@ export function useArtState() {
       console.error('Failed to display current image:', error);
       setError('Failed to load artwork. Please try refreshing the page.');
     }
-  }, [updateState, setError]); // Remove dependency on state.currentAssetIndex
+  }, [updateState, setError]);
 
   const rotateToNextImage = useCallback(async () => {
     try {
-      // Get the current index from the ArtManager to ensure we have the latest value
       const currentIndex = await window.ArtManager.instance.getCurrentIndex();
-      console.log('Frontend sending rotateImage with index:', currentIndex);
       chrome.runtime.sendMessage({
         type: 'rotateImage',
         payload: { currentAssetIndex: currentIndex },
@@ -129,7 +126,7 @@ export function useArtState() {
     } catch (error) {
       console.error('Failed to rotate image:', error);
     }
-  }, []); // Remove dependency on state.currentAssetIndex
+  }, []);
 
   const switchProvider = useCallback(async (newProvider: string) => {
     try {
@@ -177,24 +174,19 @@ export function useArtState() {
   }, [state.userSettings, updateState, setLoading, setError, displayCurrentImage]);
 
   const handleAssetUpdate = useCallback(async (newAssetIndex?: number) => {
-    console.log('Frontend handleAssetUpdate called with:', newAssetIndex);
     const index = newAssetIndex !== undefined ? newAssetIndex : await window.ArtManager.instance.getCurrentIndex();
-    console.log('Frontend updating state to index:', index);
     
-    // Also update the frontend ArtManager instance to stay in sync
     if (newAssetIndex !== undefined) {
       await window.ArtManager.instance.setCurrentIndex(newAssetIndex);
     }
     
     updateState({ currentAssetIndex: index });
-    // Call displayCurrentImage after state has been updated
     setTimeout(() => displayCurrentImage(), 0);
   }, [updateState, displayCurrentImage]);
 
   // Set up message listener
   useEffect(() => {
     const messageListener = (message: ExtensionMessage) => {
-      console.log('Frontend received message:', message);
       if (message.type === 'updateAsset') {
         handleAssetUpdate(message.payload?.newAssetIndex);
       }

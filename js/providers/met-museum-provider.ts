@@ -66,7 +66,6 @@ export class MetMuseumProvider extends ArtProvider {
     }
 
     if (index < 0 || index >= this.allAvailableIds.length) {
-      console.error(`Asset index ${index} is out of range`);
       return null;
     }
 
@@ -74,35 +73,31 @@ export class MetMuseumProvider extends ArtProvider {
       return this._syncedAssetData[index];
     }
 
-    for (
-      let i = index;
-      i < Math.min(index + 5, this.allAvailableIds.length);
-      i++
-    ) {
-      if (this._syncedAssetData[i]) {
-        return this._syncedAssetData[i];
-      }
+    try {
+      const response = await fetch(
+        `${this.BASE_URL}/objects/${this.allAvailableIds[index]}`,
+        this.DATA_REQUEST_OPTIONS,
+      );
 
-      try {
-        const response = await fetch(
-          `${this.BASE_URL}/objects/${this.allAvailableIds[i]}`,
-          this.DATA_REQUEST_OPTIONS,
-        );
-
-        if (response.ok) {
-          const rawAsset = await response.json();
-          if (MetMuseumAsset.isValidForDisplay(rawAsset)) {
-            const asset = MetMuseumAsset.fromApiResponse(rawAsset);
-            this._syncedAssetData[i] = asset;
-            return asset;
-          }
-        } else if (response.status === 403) {
-          console.warn('Hit rate limit');
-          return null;
+      if (response.ok) {
+        const rawAsset = await response.json();
+        
+        if (MetMuseumAsset.isValidForDisplay(rawAsset)) {
+          const asset = MetMuseumAsset.fromApiResponse(rawAsset);
+          this._syncedAssetData[index] = asset;
+          return asset;
+        } else {
+          this._syncedAssetData[index] = null;
         }
-      } catch (error) {
-        console.error(`Failed to fetch asset ${i}:`, error);
+      } else if (response.status === 403) {
+        console.warn('Met Museum: Hit rate limit');
+        return null;
+      } else {
+        this._syncedAssetData[index] = null;
       }
+    } catch (error) {
+      console.error(`Failed to fetch asset ${index}:`, error);
+      this._syncedAssetData[index] = null;
     }
 
     return null;

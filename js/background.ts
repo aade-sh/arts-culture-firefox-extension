@@ -78,19 +78,37 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
 
 async function handleRotateImage(currentAssetIndex: number): Promise<void> {
   try {
-    console.log('Rotating from index:', currentAssetIndex);
-    
-    // Get the total asset count to check bounds
     const totalAssets = await ArtManager.syncedAssetCount();
-    console.log('Total assets available:', totalAssets);
     
-    // Increment and wrap around if necessary
     let newIndex = currentAssetIndex + 1;
     if (newIndex >= totalAssets) {
       newIndex = 0;
     }
     
-    console.log('New index after rotation:', newIndex);
+    // For Met Museum, skip invalid assets by finding the next valid one
+    const provider = await ArtManager.getCurrentProvider();
+    if (provider.name === 'met-museum') {
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (attempts < maxAttempts) {
+        const asset = await ArtManager.getAsset(newIndex);
+        if (asset) {
+          break;
+        }
+        
+        newIndex++;
+        if (newIndex >= totalAssets) {
+          newIndex = 0;
+        }
+        attempts++;
+      }
+      
+      if (attempts >= maxAttempts) {
+        console.error('Could not find a valid asset after 10 attempts');
+        return;
+      }
+    }
 
     await ArtManager.setCurrentIndex(newIndex);
     currentBackgroundAssetIndex = newIndex;
@@ -110,8 +128,33 @@ async function handleUserSettingsUpdate(payload: any): Promise<void> {
       await ArtManager.setUserSetting(payload.key, payload.value);
 
       if (payload.key === NewTabSetting.ART_PROVIDER) {
-        currentBackgroundAssetIndex = 0;
-        await ArtManager.setCurrentIndex(0);
+        let startIndex = 0;
+        
+        // For Met Museum, find the first valid asset
+        const provider = await ArtManager.getCurrentProvider();
+        if (provider.name === 'met-museum') {
+          const totalAssets = await ArtManager.syncedAssetCount();
+          let attempts = 0;
+          const maxAttempts = 10;
+          
+          while (attempts < maxAttempts && startIndex < totalAssets) {
+            const asset = await ArtManager.getAsset(startIndex);
+            if (asset) {
+              break;
+            }
+            
+            startIndex++;
+            attempts++;
+          }
+          
+          if (attempts >= maxAttempts) {
+            console.error('Could not find a valid starting asset');
+            startIndex = 0;
+          }
+        }
+        
+        currentBackgroundAssetIndex = startIndex;
+        await ArtManager.setCurrentIndex(startIndex);
 
         chrome.runtime.sendMessage({
           type: ExtMessageType.UPDATE_ASSET,
