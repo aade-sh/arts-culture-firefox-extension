@@ -7,30 +7,6 @@ import typescript from '@rollup/plugin-typescript';
 import path from 'path';
 
 export default [
-  // New Tab dependencies bundle (for global access)
-  {
-    input: 'js/newtab-globals.ts',
-    output: {
-      file: 'newtab/newtab-globals.js',
-      format: 'iife',
-      name: 'NewTabGlobals'
-    },
-    plugins: [
-      typescript({
-        tsconfig: './tsconfig.json'
-      }),
-      replace({
-        'process.env.NODE_ENV': JSON.stringify('production'),
-        preventAssignment: true
-      }),
-      resolve({
-        browser: true,
-        preferBuiltins: false
-      }),
-      commonjs(),
-      terser()
-    ]
-  },
   // New Tab bundle
   {
     input: 'src/newtab.tsx',

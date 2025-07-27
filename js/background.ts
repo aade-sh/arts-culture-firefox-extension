@@ -1,16 +1,11 @@
 import { instance as ArtManager } from './art-manager.js';
 import { NewTabSetting } from './settings.js';
-import { ExtensionMessage } from '../src/types/index.js';
-
-// Make ArtManager globally available for the extension
-(globalThis as any).ArtManager = { instance: ArtManager };
-(globalThis as any).NewTabSetting = NewTabSetting;
 
 const ExtMessageType = {
-  ROTATE_IMAGE: 'rotateImage',
-  UPDATE_ASSET: 'updateAsset',
-  USER_SETTINGS_UPDATE: 'userSettingsUpdate',
-  REQUEST_CURRENT_ASSET: 'requestCurrentAsset',
+  GET_CURRENT_ART: 'getCurrentArt',
+  ROTATE_TO_NEXT: 'rotateToNext',
+  SWITCH_PROVIDER: 'switchProvider',
+  ART_UPDATED: 'artUpdated',
 } as const;
 
 let currentBackgroundAssetIndex = 0;
@@ -58,17 +53,35 @@ chrome.browserAction.onClicked.addListener((tab) => {
   });
 });
 
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
+  if (message.type === ExtMessageType.GET_CURRENT_ART) {
+    const tabId = sender.tab?.id;
+    if (tabId) {
+      handleGetCurrentArtAsync()
+        .then(response => {
+          chrome.tabs.sendMessage(tabId, {
+            type: 'getCurrentArtResponse',
+            data: response
+          });
+        })
+        .catch(error => {
+          console.error('Error getting art:', error);
+          chrome.tabs.sendMessage(tabId, {
+            type: 'getCurrentArtResponse',
+            data: { error: 'Failed to load artwork: ' + error.message }
+          });
+        });
+    }
+    return false;
+  }
+  
   switch (message.type) {
-    case ExtMessageType.ROTATE_IMAGE:
-      handleRotateImage(message.payload?.currentAssetIndex || 0);
+    case ExtMessageType.ROTATE_TO_NEXT:
+      handleRotateToNext();
       break;
-    case ExtMessageType.USER_SETTINGS_UPDATE:
-      handleUserSettingsUpdate(message.payload);
+    case ExtMessageType.SWITCH_PROVIDER:
+      handleSwitchProvider(message.provider);
       break;
-    case ExtMessageType.REQUEST_CURRENT_ASSET:
-      handleRequestCurrentAsset(sendResponse);
-      return true;
     default:
       console.error('Unknown message type:', message.type);
   }
@@ -76,101 +89,152 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
   return false;
 });
 
-async function handleRotateImage(currentAssetIndex: number): Promise<void> {
+async function handleGetCurrentArtAsync(): Promise<any> {
+  const syncSuccess = await ArtManager.syncData();
+  if (!syncSuccess) {
+    return { error: 'Failed to sync art data' };
+  }
+
+  const totalAssets = await ArtManager.syncedAssetCount();
+  if (totalAssets === 0) {
+    return { error: 'No assets available from current provider' };
+  }
+
+  const currentIndex = await ArtManager.getCurrentIndex();
+  currentBackgroundAssetIndex = currentIndex;
+
+  let asset = await ArtManager.getAsset(currentBackgroundAssetIndex);
+  
+  if (!asset) {
+    const validIndex = await findNextValidAsset(currentBackgroundAssetIndex, totalAssets);
+    if (validIndex === -1) {
+      return { error: 'No valid assets available' };
+    }
+    currentBackgroundAssetIndex = validIndex;
+    await ArtManager.setCurrentIndex(validIndex);
+    asset = await ArtManager.getAsset(validIndex);
+  }
+
+  if (!asset) {
+    return { error: 'Failed to load asset data' };
+  }
+
+  await ArtManager.loadImage(currentBackgroundAssetIndex);
+  const imageUrl = await ArtManager.getDisplayImageUrl(currentBackgroundAssetIndex);
+
+  return {
+    asset: asset,
+    imageUrl,
+    totalAssets,
+    currentIndex: currentBackgroundAssetIndex
+  };
+}
+
+async function handleRotateToNext(): Promise<void> {
   try {
     const totalAssets = await ArtManager.syncedAssetCount();
-    
-    let newIndex = currentAssetIndex + 1;
+    let newIndex = currentBackgroundAssetIndex + 1;
     if (newIndex >= totalAssets) {
       newIndex = 0;
     }
-    
-    // For Met Museum, skip invalid assets by finding the next valid one
-    const provider = await ArtManager.getCurrentProvider();
-    if (provider.name === 'met-museum') {
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      while (attempts < maxAttempts) {
-        const asset = await ArtManager.getAsset(newIndex);
-        if (asset) {
-          break;
-        }
-        
-        newIndex++;
-        if (newIndex >= totalAssets) {
-          newIndex = 0;
-        }
-        attempts++;
-      }
-      
-      if (attempts >= maxAttempts) {
-        console.error('Could not find a valid asset after 10 attempts');
-        return;
-      }
+
+    // Find next valid asset
+    const validIndex = await findNextValidAsset(newIndex, totalAssets);
+    if (validIndex === -1) {
+      console.error('No valid assets found');
+      return;
     }
 
-    await ArtManager.setCurrentIndex(newIndex);
-    currentBackgroundAssetIndex = newIndex;
+    currentBackgroundAssetIndex = validIndex;
+    await ArtManager.setCurrentIndex(validIndex);
 
-    chrome.runtime.sendMessage({
-      type: ExtMessageType.UPDATE_ASSET,
-      payload: { newAssetIndex: newIndex },
+    const asset = await ArtManager.getAsset(validIndex);
+    await ArtManager.loadImage(validIndex);
+    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex);
+
+    // Notify all new tab pages
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        if (tab.id && tab.url?.includes('newtab')) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: ExtMessageType.ART_UPDATED,
+            asset,
+            imageUrl,
+            totalAssets,
+            currentIndex: validIndex
+          });
+        }
+      });
     });
   } catch (error) {
-    console.error('Error rotating image:', error);
+    console.error('Error rotating to next:', error);
   }
 }
 
-async function handleUserSettingsUpdate(payload: any): Promise<void> {
+async function handleSwitchProvider(providerName: string): Promise<void> {
   try {
-    if (payload && payload.key) {
-      await ArtManager.setUserSetting(payload.key, payload.value);
-
-      if (payload.key === NewTabSetting.ART_PROVIDER) {
-        let startIndex = 0;
-        
-        // For Met Museum, find the first valid asset
-        const provider = await ArtManager.getCurrentProvider();
-        if (provider.name === 'met-museum') {
-          const totalAssets = await ArtManager.syncedAssetCount();
-          let attempts = 0;
-          const maxAttempts = 10;
-          
-          while (attempts < maxAttempts && startIndex < totalAssets) {
-            const asset = await ArtManager.getAsset(startIndex);
-            if (asset) {
-              break;
-            }
-            
-            startIndex++;
-            attempts++;
-          }
-          
-          if (attempts >= maxAttempts) {
-            console.error('Could not find a valid starting asset');
-            startIndex = 0;
-          }
-        }
-        
-        currentBackgroundAssetIndex = startIndex;
-        await ArtManager.setCurrentIndex(startIndex);
-
-        chrome.runtime.sendMessage({
-          type: ExtMessageType.UPDATE_ASSET,
-          payload: { newAssetIndex: currentBackgroundAssetIndex },
-        });
-      }
+    await ArtManager.setCurrentProvider(providerName);
+    await ArtManager.syncData();
+    
+    const totalAssets = await ArtManager.syncedAssetCount();
+    const validIndex = await findNextValidAsset(0, totalAssets);
+    
+    if (validIndex === -1) {
+      console.error('No valid assets in new provider');
+      return;
     }
+
+    currentBackgroundAssetIndex = validIndex;
+    await ArtManager.setCurrentIndex(validIndex);
+
+    const asset = await ArtManager.getAsset(validIndex);
+    await ArtManager.loadImage(validIndex);
+    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex);
+
+    // Notify all new tab pages
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach(tab => {
+        if (tab.id && tab.url?.includes('newtab')) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: ExtMessageType.ART_UPDATED,
+            asset,
+            imageUrl,
+            totalAssets,
+            currentIndex: validIndex
+          });
+        }
+      });
+    });
   } catch (error) {
-    console.error('Error updating user setting:', error);
+    console.error('Error switching provider:', error);
   }
 }
 
-async function handleRequestCurrentAsset(sendResponse: (response: any) => void): Promise<void> {
-  try {
-    sendResponse({ currentAssetIndex: currentBackgroundAssetIndex });
-  } catch (error) {
-    sendResponse({ currentAssetIndex: 0 });
+async function findNextValidAsset(startIndex: number, totalAssets: number): Promise<number> {
+  const provider = await ArtManager.getCurrentProvider();
+  
+  // For Google Arts, assets are pre-validated, so just return the index
+  if (provider.name === 'google-arts') {
+    return startIndex;
   }
+
+  // For Met Museum, search for valid assets
+  let attempts = 0;
+  const maxAttempts = 10;
+  let index = startIndex;
+
+  while (attempts < maxAttempts) {
+    const asset = await ArtManager.getAsset(index);
+    if (asset) {
+      return index;
+    }
+    
+    index++;
+    if (index >= totalAssets) {
+      index = 0;
+    }
+    attempts++;
+  }
+
+  return -1; // No valid asset found
 }
