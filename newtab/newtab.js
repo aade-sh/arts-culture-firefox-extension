@@ -55,7 +55,11 @@ class NewTabPage {
 
   showError(message) {
     const loading = document.getElementById('loading');
-    loading.innerHTML = `<p style="color: #ff6b6b;">${message}</p>`;
+    const p = document.createElement('p');
+    p.style.color = '#ff6b6b';
+    p.textContent = message;
+    loading.innerHTML = '';
+    loading.appendChild(p);
     loading.classList.remove('hidden');
   }
 
