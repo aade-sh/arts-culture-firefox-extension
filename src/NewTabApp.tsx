@@ -30,11 +30,12 @@ export function NewTabApp() {
     console.log('Turnover setting changed:', checked);
   };
 
-  if (loading) {
+  // Show full loading screen only if no image exists yet
+  if (loading && !imageUrl) {
     return <LoadingSpinner />;
   }
 
-  if (error) {
+  if (error && !imageUrl) {
     return <ErrorDisplay message={error} />;
   }
 
@@ -43,6 +44,8 @@ export function NewTabApp() {
       <ArtDisplay
         asset={currentAsset}
         imageUrl={imageUrl}
+        loading={loading}
+        error={error}
         onRotate={rotateToNext}
         onInfo={handleInfo}
         onSettings={() => setShowSettings(true)}

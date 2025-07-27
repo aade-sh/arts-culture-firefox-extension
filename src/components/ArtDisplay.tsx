@@ -4,12 +4,14 @@ import { ArtAsset } from '../types';
 interface ArtDisplayProps {
   asset: ArtAsset | null;
   imageUrl: string | null;
+  loading?: boolean;
+  error?: string | null;
   onRotate: () => void;
   onInfo: () => void;
   onSettings: () => void;
 }
 
-export function ArtDisplay({ asset, imageUrl, onRotate, onInfo, onSettings }: ArtDisplayProps) {
+export function ArtDisplay({ asset, imageUrl, loading, error, onRotate, onInfo, onSettings }: ArtDisplayProps) {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'ArrowRight') {
       e.preventDefault();
@@ -27,6 +29,22 @@ export function ArtDisplay({ asset, imageUrl, onRotate, onInfo, onSettings }: Ar
           src={imageUrl || undefined} 
           alt={asset?.title || 'Artwork'} 
         />
+        
+        {/* Loading overlay - show when loading but image exists */}
+        {loading && imageUrl && (
+          <div className="loading-overlay">
+            <div className="loading-spinner"></div>
+          </div>
+        )}
+        
+        {/* Error overlay - show when error but image exists */}
+        {error && imageUrl && (
+          <div className="error-overlay">
+            <div className="error-message">
+              {error}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Art info overlay */}
@@ -43,6 +61,7 @@ export function ArtDisplay({ asset, imageUrl, onRotate, onInfo, onSettings }: Ar
             className="action-btn rotate-btn"
             title="Next artwork"
             onClick={onRotate}
+            disabled={loading}
           >
             <svg
               width="24"

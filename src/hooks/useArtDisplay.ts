@@ -37,7 +37,7 @@ export function useArtDisplay() {
   }, []);
 
   const switchProvider = useCallback(async (provider: string) => {
-    setState(prev => ({ ...prev, loading: true }));
+    setState(prev => ({ ...prev, loading: true, error: null }));
     chrome.runtime.sendMessage({ type: 'switchProvider', provider });
   }, []);
 
