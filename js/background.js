@@ -3,8 +3,11 @@
 const ExtMessageType = {
   ROTATE_IMAGE: 'rotateImage',
   UPDATE_ASSET: 'updateAsset',
-  USER_SETTINGS_UPDATE: 'userSettingsUpdate'
+  USER_SETTINGS_UPDATE: 'userSettingsUpdate',
+  REQUEST_CURRENT_ASSET: 'requestCurrentAsset'
 };
+
+let currentBackgroundAssetIndex = 0;
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Extension installed/updated:', details.reason);
@@ -29,6 +32,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       currentAssetIndex = 0;
     }
     await Settings.writeCurrentAssetIndex(currentAssetIndex);
+    currentBackgroundAssetIndex = currentAssetIndex;
 
     let nextAssetIndex = currentAssetIndex + 1;
     if (nextAssetIndex >= totalAssets) {
@@ -67,6 +71,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case ExtMessageType.USER_SETTINGS_UPDATE:
       handleUserSettingsUpdate(message.payload);
       break;
+    case ExtMessageType.REQUEST_CURRENT_ASSET:
+      handleRequestCurrentAsset(sendResponse);
+      return true;
     default:
       console.log('Unknown message type:', message.type);
   }
@@ -92,15 +99,18 @@ async function handleRotateImage(currentAssetIndex) {
 
     if (result) {
       await Settings.writeCurrentAssetIndex(currentAssetIndex);
+      currentBackgroundAssetIndex = currentAssetIndex;
       
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, {
-            type: ExtMessageType.UPDATE_ASSET,
-            payload: { newAssetIndex: currentAssetIndex }
-          }, () => {
-            if (chrome.runtime.lastError) {}
-          });
+          if (tab.url && tab.url.includes('newtab.html')) {
+            chrome.tabs.sendMessage(tab.id, {
+              type: ExtMessageType.UPDATE_ASSET,
+              payload: { newAssetIndex: currentAssetIndex }
+            }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
         });
       });
     } else {
@@ -119,6 +129,14 @@ async function handleUserSettingsUpdate(payload) {
     }
   } catch (error) {
     console.error('Error updating user setting:', error);
+  }
+}
+
+async function handleRequestCurrentAsset(sendResponse) {
+  try {
+    sendResponse({ currentAssetIndex: currentBackgroundAssetIndex });
+  } catch (error) {
+    sendResponse({ currentAssetIndex: 0 });
   }
 }
 

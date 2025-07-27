@@ -18,11 +18,19 @@ class NewTabPage {
 
       this.currentAssetIndex = await Settings.getCurrentAssetIndex();
 
-      if (this.userSettings[NewTabSetting.TURNOVER_ALWAYS]) {
-        await this.rotateToNextImage();
-      } else {
-        await this.displayCurrentImage();
-      }
+      chrome.runtime.sendMessage({
+        type: 'requestCurrentAsset'
+      }, (response) => {
+        if (response && response.currentAssetIndex !== undefined) {
+          this.currentAssetIndex = response.currentAssetIndex;
+        }
+        
+        if (this.userSettings[NewTabSetting.TURNOVER_ALWAYS]) {
+          this.rotateToNextImage();
+        } else {
+          this.displayCurrentImage();
+        }
+      });
 
       this.setupEventListeners();
 
