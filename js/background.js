@@ -106,8 +106,18 @@ async function handleRotateImage(currentAssetIndex) {
       await Settings.writeCurrentAssetIndex(currentAssetIndex);
       
       // Notify all tabs about the asset update
-      chrome.runtime.sendMessage({
-        type: ExtMessageType.UPDATE_ASSET
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, {
+            type: ExtMessageType.UPDATE_ASSET,
+            payload: { newAssetIndex: currentAssetIndex }
+          }, () => {
+            // Ignore errors for tabs that can't receive messages
+            if (chrome.runtime.lastError) {
+              // Silently ignore
+            }
+          });
+        });
       });
     } else {
       console.error('Failed to load next image');

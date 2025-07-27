@@ -97,13 +97,8 @@ class NewTabPage {
         payload: { currentAssetIndex: this.currentAssetIndex }
       });
 
-      // Update local index
-      this.currentAssetIndex += 1;
-      if (this.currentAssetIndex >= this.totalAssets) {
-        this.currentAssetIndex = 0;
-      }
-
-      await this.displayCurrentImage();
+      // The background script will send us an UPDATE_ASSET message when ready
+      // No need to manually refresh here
     } catch (error) {
       console.error('Failed to rotate image:', error);
     }
@@ -157,7 +152,7 @@ class NewTabPage {
     // Listen for background messages
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === 'updateAsset') {
-        this.handleAssetUpdate();
+        this.handleAssetUpdate(message.payload?.newAssetIndex);
       }
     });
 
@@ -203,9 +198,13 @@ class NewTabPage {
     document.getElementById('settings-modal').classList.add('hidden');
   }
 
-  async handleAssetUpdate() {
-    // Refresh current asset index and display
-    this.currentAssetIndex = await Settings.getCurrentAssetIndex();
+  async handleAssetUpdate(newAssetIndex) {
+    // Update current asset index and display
+    if (newAssetIndex !== undefined) {
+      this.currentAssetIndex = newAssetIndex;
+    } else {
+      this.currentAssetIndex = await Settings.getCurrentAssetIndex();
+    }
     await this.displayCurrentImage();
   }
 }
