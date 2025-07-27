@@ -1,7 +1,7 @@
-import { GoogleArtsProvider } from './providers/google-arts-provider.js';
-import { MetMuseumProvider } from './providers/met-museum-provider.js';
-import { ExtensionStorage } from './storage.js';
-import { ArtAsset, ArtProvider, ArtManager as IArtManager, UserSettings } from '../src/types/index.js';
+import { GoogleArtsProvider } from './providers/google-arts-provider';
+import { MetMuseumProvider } from './providers/met-museum-provider';
+import { ExtensionStorage } from './storage';
+import { ArtAsset, ArtProvider, ArtManager as IArtManager, UserSettings } from '../types';
 
 interface ArtState {
   provider: string;

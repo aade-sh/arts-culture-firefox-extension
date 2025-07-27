@@ -1,5 +1,5 @@
-import { ArtAsset, ArtProvider as IArtProvider } from '../../src/types/index.js';
-import { Cache } from '../cache-manager.js';
+import { ArtAsset, ArtProvider as IArtProvider } from '../../types';
+import { Cache } from '../cache-manager';
 
 export abstract class ArtProvider implements IArtProvider {
   name: string;

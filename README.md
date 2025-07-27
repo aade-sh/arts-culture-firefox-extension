@@ -1,6 +1,8 @@
-# Google Arts & Culture - Firefox Extension
+# Art Gallery New Tab - Firefox Extension
 
-Firefox port of Google Arts and Culture Chrome Extension.
+TypeScript-based Firefox extension that transforms your new tab into a curated art gallery featuring works from Google Arts & Culture and Metropolitan Museum.\
+\
+Inspired by [Google Arts and Culture extension](https://chromewebstore.google.com/detail/google-arts-culture/akimgimeeoiognljlfchpbkpfbmeapkh?hl=en)
 
 ## Installation
 
@@ -9,21 +11,25 @@ Firefox port of Google Arts and Culture Chrome Extension.
 3. Click "Load Temporary Add-on" → select `manifest.json`
 4. Open new tab to enjoy!
 
-## How it Works
-
-Uses Google Arts & Culture's API (`gstatic.com/culturalinstitute/tabext/imax_2_2.json`) to display the same artworks as the official Chrome extension.
-
 ## Structure
 
 ```
 ├── manifest.json          # Extension config
-├── js/                    # Core functionality
+├── src/
+│   ├── background/        # Background scripts (TypeScript)
+│   ├── components/        # React components
+│   ├── hooks/            # Custom hooks
+│   └── types.ts          # Type definitions
 ├── newtab/               # New tab page
-├── options/              # Settings page
 └── icons/                # Extension icons (need to add)
 ```
 
 ## Development
+
+```bash
+pnpm install
+pnpm run build
+```
 
 **Debug**: `about:debugging` → extension console  
 **Test**: Load via "Load Temporary Add-on"

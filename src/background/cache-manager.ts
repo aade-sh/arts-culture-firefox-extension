@@ -1,4 +1,4 @@
-import { ExtensionStorage } from './storage.js';
+import { ExtensionStorage } from './storage';
 
 export class CacheManager {
   private readonly CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours

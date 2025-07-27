@@ -39,7 +39,7 @@ export default [
   },
   // Background script bundle
   {
-    input: 'js/background.ts',
+    input: 'src/background/background.ts',
     output: {
       file: 'dist/background.js',
       format: 'iife',

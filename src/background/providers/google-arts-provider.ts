@@ -1,6 +1,6 @@
-import { ArtProvider } from './art-provider-base.js';
-import { GoogleArtsAsset } from '../models/google-arts-asset.js';
-import { ArtAsset } from '../../src/types/index.js';
+import { ArtProvider } from './art-provider-base';
+import { GoogleArtsAsset } from '../models/google-arts-asset';
+import { ArtAsset } from '../../types';
 
 export class GoogleArtsProvider extends ArtProvider {
   private _syncedAssetData: GoogleArtsAsset[] = [];

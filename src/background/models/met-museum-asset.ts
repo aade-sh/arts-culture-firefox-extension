@@ -1,4 +1,4 @@
-import { ArtAsset } from '../../src/types/index.js';
+import { ArtAsset } from '../../types';
 
 interface MetMuseumRawData {
   objectID?: number;

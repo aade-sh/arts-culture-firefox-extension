@@ -1,5 +1,5 @@
-import { instance as ArtManager } from './art-manager.js';
-import { NewTabSetting } from './settings.js';
+import { instance as ArtManager } from './art-manager';
+import { NewTabSetting } from './settings';
 
 const ExtMessageType = {
   GET_CURRENT_ART: 'getCurrentArt',

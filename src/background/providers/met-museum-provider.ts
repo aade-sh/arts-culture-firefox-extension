@@ -1,6 +1,6 @@
-import { ArtProvider } from './art-provider-base.js';
-import { MetMuseumAsset } from '../models/met-museum-asset.js';
-import { ArtAsset } from '../../src/types/index.js';
+import { ArtProvider } from './art-provider-base';
+import { MetMuseumAsset } from '../models/met-museum-asset';
+import { ArtAsset } from '../../types';
 
 export class MetMuseumProvider extends ArtProvider {
   private _syncedAssetData: (MetMuseumAsset | null)[] = [];
