@@ -6,7 +6,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+    'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', system-ui,
+    sans-serif;
   height: 100vh;
   overflow: hidden;
   background: #000;
@@ -34,7 +36,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading p {
@@ -97,7 +101,7 @@ body {
   font-weight: 700;
   margin-bottom: 8px;
   line-height: 1.2;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 1px 3px rgba(0, 0, 0, 0.9);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -108,14 +112,14 @@ body {
   font-weight: 400;
   margin-bottom: 4px;
   opacity: 0.95;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 .art-attribution {
   font-size: 16px;
   font-weight: 300;
   opacity: 0.9;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 /* Action Buttons */
@@ -138,19 +142,18 @@ body {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .action-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .action-btn:active {
   transform: translateY(0);
 }
-
 
 /* Settings Modal */
 .modal {
@@ -173,7 +176,7 @@ body {
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 
@@ -235,7 +238,7 @@ body {
   cursor: pointer;
 }
 
-.setting-item input[type="checkbox"] {
+.setting-item input[type='checkbox'] {
   width: 20px;
   height: 20px;
   cursor: pointer;
@@ -308,7 +311,7 @@ body {
 /* Focus styles for accessibility */
 .action-btn:focus,
 .close-btn:focus,
-input[type="checkbox"]:focus {
+input[type='checkbox']:focus {
   outline: 2px solid #4285f4;
   outline-offset: 2px;
 }
