@@ -1,35 +1,45 @@
-// Unified Art Manager - replaces AssetData + ArtProviderManager
-class ArtManager {
+import { GoogleArtsProvider } from './providers/google-arts-provider.js';
+import { MetMuseumProvider } from './providers/met-museum-provider.js';
+import { ExtensionStorage } from './storage.js';
+import { ArtAsset, ArtProvider, ArtManager as IArtManager, UserSettings } from '../src/types/index.js';
+
+interface ArtState {
+  provider: string;
+  currentIndex: number;
+  turnoverAlways: boolean;
+  lastUpdated: number;
+}
+
+export class ArtManager implements IArtManager {
+  private providers = new Map<string, ArtProvider>();
+  private currentProvider: ArtProvider | null = null;
+  private state: ArtState = {
+    provider: 'google-arts',
+    currentIndex: 0,
+    turnoverAlways: false,
+    lastUpdated: Date.now()
+  };
+  
   constructor() {
-    this.providers = new Map();
-    this.currentProvider = null;
-    this.state = {
-      provider: 'google-arts',
-      currentIndex: 0,
-      turnoverAlways: false,
-      lastUpdated: Date.now()
-    };
-    
-    // Register providers
     this.registerProvider(new GoogleArtsProvider());
     this.registerProvider(new MetMuseumProvider());
   }
 
-  registerProvider(provider) {
+  private registerProvider(provider: ArtProvider): void {
     this.providers.set(provider.name, provider);
   }
 
-  getProvider(name) {
+  private getProvider(name: string): ArtProvider | undefined {
     return this.providers.get(name);
   }
 
-  getAllProviders() {
+  getAllProviders(): ArtProvider[] {
     return Array.from(this.providers.values());
   }
 
-  async loadState() {
+  async loadState(): Promise<void> {
     try {
-      const stored = await ExtensionStorage.readData('art_state', true);
+      const stored = await ExtensionStorage.readData('art_state');
       if (stored) {
         this.state = { ...this.state, ...JSON.parse(stored) };
       }
@@ -38,19 +48,22 @@ class ArtManager {
     }
   }
 
-  async saveState() {
+  async saveState(): Promise<void> {
     this.state.lastUpdated = Date.now();
-    await ExtensionStorage.writeData('art_state', JSON.stringify(this.state), true);
+    await ExtensionStorage.writeData('art_state', JSON.stringify(this.state));
   }
 
-  async getCurrentProvider() {
+  async getCurrentProvider(): Promise<ArtProvider> {
     if (!this.currentProvider) {
       await this.loadState();
-      this.currentProvider = this.getProvider(this.state.provider);
+      this.currentProvider = this.getProvider(this.state.provider) || null;
       
       if (!this.currentProvider) {
         console.warn(`Provider ${this.state.provider} not found, using google-arts`);
-        this.currentProvider = this.getProvider('google-arts');
+        this.currentProvider = this.getProvider('google-arts') || null;
+        if (!this.currentProvider) {
+          throw new Error('No providers available');
+        }
         this.state.provider = 'google-arts';
         await this.saveState();
       }
@@ -59,7 +72,7 @@ class ArtManager {
     return this.currentProvider;
   }
 
-  async setCurrentProvider(providerName) {
+  async setCurrentProvider(providerName: string): Promise<void> {
     const provider = this.getProvider(providerName);
     if (!provider) {
       throw new Error(`Provider ${providerName} not found`);
@@ -67,82 +80,77 @@ class ArtManager {
     
     this.currentProvider = provider;
     this.state.provider = providerName;
-    this.state.currentIndex = 0; // Reset index when switching providers
+    this.state.currentIndex = 0;
     await this.saveState();
-    
-    return provider;
   }
 
-  async syncData() {
+  async syncData(): Promise<boolean> {
     const provider = await this.getCurrentProvider();
     return provider.syncData();
   }
 
-  async getAsset(index) {
+  async getAsset(index: number): Promise<ArtAsset | null> {
     const provider = await this.getCurrentProvider();
     return provider.getAsset(index);
   }
 
-  async loadImage(assetId) {
+  async loadImage(assetId: number): Promise<boolean> {
     const provider = await this.getCurrentProvider();
     return provider.loadImage(assetId);
   }
 
-  async syncedAssetCount() {
+  async syncedAssetCount(): Promise<number> {
     const provider = await this.getCurrentProvider();
     return provider.syncedAssetCount();
   }
 
-  async getDisplayImageUrl(assetId) {
+  async getDisplayImageUrl(assetId: number): Promise<string | null> {
     if (!this.currentProvider) return null;
     return await this.currentProvider.getDisplayImageUrl(assetId);
   }
 
-  async getDetailsUrl(assetId) {
+  async getDetailsUrl(assetId: number): Promise<string | null> {
     const provider = await this.getCurrentProvider();
     const asset = await this.getAsset(assetId);
     if (!asset) return null;
     return provider.getDetailsUrl(asset);
   }
 
-  // State management
-  async getCurrentIndex() {
+  async getCurrentIndex(): Promise<number> {
     await this.loadState();
     return this.state.currentIndex;
   }
 
-  async setCurrentIndex(index) {
+  async setCurrentIndex(index: number): Promise<void> {
     this.state.currentIndex = index;
     await this.saveState();
   }
 
-  async getTurnoverAlways() {
+  async getTurnoverAlways(): Promise<boolean> {
     await this.loadState();
     return this.state.turnoverAlways;
   }
 
-  async setTurnoverAlways(value) {
+  async setTurnoverAlways(value: boolean): Promise<void> {
     this.state.turnoverAlways = value;
     await this.saveState();
   }
 
-  async getUserSettings() {
+  async getUserSettings(): Promise<UserSettings> {
     await this.loadState();
     return {
-      turnoverAlways: this.state.turnoverAlways,
-      artProvider: this.state.provider,
+      TURNOVER_ALWAYS: this.state.turnoverAlways,
+      ART_PROVIDER: this.state.provider,
     };
   }
 
-  async setUserSetting(key, value) {
+  async setUserSetting(key: string, value: any): Promise<void> {
     if (key === 'turnoverAlways') {
       await this.setTurnoverAlways(value);
     } else if (key === 'artProvider') {
       await this.setCurrentProvider(value);
     }
   }
-
 }
 
-// Global instance
-ArtManager.instance = new ArtManager();
+export const instance = new ArtManager();
