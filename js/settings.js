@@ -1,15 +1,9 @@
 const NewTabSetting = {
   TURNOVER_ALWAYS: 'turnoverAlways',
-  APPS_BUTTON_HIDDEN: 'appsButtonHidden',
-  DEFAULT_NEWTAB_BUTTON_HIDDEN: 'defaultNewTabButtonHidden',
-  TOP_SITES_BUTTON_HIDDEN: 'topSitesButtonHidden'
 };
 
 const DEFAULT_USER_SETTINGS = {
   [NewTabSetting.TURNOVER_ALWAYS]: false,
-  [NewTabSetting.APPS_BUTTON_HIDDEN]: false,
-  [NewTabSetting.DEFAULT_NEWTAB_BUTTON_HIDDEN]: false,
-  [NewTabSetting.TOP_SITES_BUTTON_HIDDEN]: false
 };
 
 class Settings {
