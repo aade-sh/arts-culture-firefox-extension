@@ -1,4 +1,4 @@
-# Art Gallery New Tab - Firefox Extension
+# Arts and Culture New Tab - Firefox Extension
 
 TypeScript-based Firefox extension that transforms your new tab into a curated art gallery featuring works from Google Arts & Culture and Metropolitan Museum.\
 \
