@@ -1,48 +1,59 @@
-import { h } from 'preact';
-import { ArtAsset } from '../types';
+import { h } from 'preact'
+import { ArtAsset } from '../types'
 
 interface ArtDisplayProps {
-  asset: ArtAsset | null;
-  imageUrl: string | null;
-  loading?: boolean;
-  error?: string | null;
-  onRotate: () => void;
-  onInfo: () => void;
-  onSettings: () => void;
+  asset: ArtAsset | null
+  imageUrl: string | null
+  loading?: boolean
+  error?: string | null
+  onRotate: () => void
+  onInfo: () => void
+  onSettings: () => void
 }
 
-export function ArtDisplay({ asset, imageUrl, loading, error, onRotate, onInfo, onSettings }: ArtDisplayProps) {
+export function ArtDisplay({
+  asset,
+  imageUrl,
+  loading,
+  error,
+  onRotate,
+  onInfo,
+  onSettings,
+}: ArtDisplayProps) {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === ' ' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      onRotate();
+      e.preventDefault()
+      onRotate()
     }
-  };
+  }
 
   return (
-    <div id="main-content" className="main-content" onKeyDown={handleKeyDown} tabIndex={0}>
+    <div
+      id="main-content"
+      className="main-content"
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+    >
       {/* Background image container */}
       <div id="background-container" className="background-container">
-        <img 
-          id="background-image" 
-          className="background-image" 
-          src={imageUrl || undefined} 
-          alt={asset?.title || 'Artwork'} 
+        <img
+          id="background-image"
+          className="background-image"
+          src={imageUrl || undefined}
+          alt={asset?.title || 'Artwork'}
         />
-        
+
         {/* Loading overlay - show when loading but image exists */}
         {loading && imageUrl && (
           <div className="loading-overlay">
             <div className="loading-spinner"></div>
           </div>
         )}
-        
+
         {/* Error overlay - show when error but image exists */}
         {error && imageUrl && (
           <div className="error-overlay">
-            <div className="error-message">
-              {error}
-            </div>
+            <div className="error-message">{error}</div>
           </div>
         )}
       </div>
@@ -50,9 +61,15 @@ export function ArtDisplay({ asset, imageUrl, loading, error, onRotate, onInfo, 
       {/* Art info overlay */}
       <div id="art-info" className="art-info">
         <div className="art-details">
-          <h1 id="art-title" className="art-title">{asset?.title || 'Untitled'}</h1>
-          <p id="art-creator" className="art-creator">{asset?.creator || 'Unknown Artist'}</p>
-          <p id="art-attribution" className="art-attribution">{asset?.attribution || ''}</p>
+          <h1 id="art-title" className="art-title">
+            {asset?.title || 'Untitled'}
+          </h1>
+          <p id="art-creator" className="art-creator">
+            {asset?.creator || 'Unknown Artist'}
+          </p>
+          <p id="art-attribution" className="art-attribution">
+            {asset?.attribution || ''}
+          </p>
         </div>
 
         <div className="art-actions">
@@ -79,9 +96,9 @@ export function ArtDisplay({ asset, imageUrl, loading, error, onRotate, onInfo, 
               <path d="M3 21v-5h5" />
             </svg>
           </button>
-          <button 
-            id="info-btn" 
-            className="action-btn info-btn" 
+          <button
+            id="info-btn"
+            className="action-btn info-btn"
             title="Learn more"
             onClick={onInfo}
           >
@@ -117,13 +134,11 @@ export function ArtDisplay({ asset, imageUrl, loading, error, onRotate, onInfo, 
               strokeLinejoin="round"
             >
               <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-              <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"
-              />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z" />
             </svg>
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }

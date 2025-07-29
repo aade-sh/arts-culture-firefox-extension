@@ -1,13 +1,13 @@
-import { h, Fragment } from 'preact';
-import { useState } from 'preact/hooks';
-import { useArtDisplay } from './hooks/useArtDisplay';
-import { LoadingSpinner } from './components/LoadingSpinner';
-import { ErrorDisplay } from './components/ErrorDisplay';
-import { ArtDisplay } from './components/ArtDisplay';
-import { SettingsModal } from './components/SettingsModal';
+import { h, Fragment } from 'preact'
+import { useState } from 'preact/hooks'
+import { useArtDisplay } from './hooks/useArtDisplay'
+import { LoadingSpinner } from './components/LoadingSpinner'
+import { ErrorDisplay } from './components/ErrorDisplay'
+import { ArtDisplay } from './components/ArtDisplay'
+import { SettingsModal } from './components/SettingsModal'
 
 export function NewTabApp() {
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false)
   const {
     currentAsset,
     imageUrl,
@@ -15,22 +15,22 @@ export function NewTabApp() {
     error,
     userSettings,
     rotateToNext,
-    switchProvider
-  } = useArtDisplay();
+    switchProvider,
+  } = useArtDisplay()
 
   const handleInfo = () => {
     if (currentAsset?.getDetailsUrl) {
-      chrome.tabs.create({ url: currentAsset.getDetailsUrl() });
+      chrome.tabs.create({ url: currentAsset.getDetailsUrl() })
     }
-  };
+  }
 
   // Show full loading screen only if no image exists yet
   if (loading && !imageUrl) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner />
   }
 
   if (error && !imageUrl) {
-    return <ErrorDisplay message={error} />;
+    return <ErrorDisplay message={error} />
   }
 
   return (
@@ -51,5 +51,5 @@ export function NewTabApp() {
         onProviderChange={switchProvider}
       />
     </>
-  );
+  )
 }

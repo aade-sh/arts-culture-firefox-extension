@@ -1,240 +1,248 @@
-import { instance as ArtManager } from './art-manager';
-import { NewTabSetting } from './settings';
+import { instance as ArtManager } from './art-manager'
+import { NewTabSetting } from './settings'
 
 const ExtMessageType = {
   GET_CURRENT_ART: 'getCurrentArt',
   ROTATE_TO_NEXT: 'rotateToNext',
   SWITCH_PROVIDER: 'switchProvider',
   ART_UPDATED: 'artUpdated',
-} as const;
+} as const
 
-let currentBackgroundAssetIndex = 0;
+let currentBackgroundAssetIndex = 0
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   try {
     if (details.reason === 'install') {
-      await ArtManager.loadState();
+      await ArtManager.loadState()
     }
 
-    await ArtManager.getCurrentProvider();
+    await ArtManager.getCurrentProvider()
 
-    const syncSuccess = await ArtManager.syncData();
+    const syncSuccess = await ArtManager.syncData()
     if (!syncSuccess) {
-      console.error('Failed to sync asset data during installation');
-      return;
+      console.error('Failed to sync asset data during installation')
+      return
     }
 
-    const totalAssets = await ArtManager.syncedAssetCount();
+    const totalAssets = await ArtManager.syncedAssetCount()
 
-    let currentAssetIndex = await ArtManager.getCurrentIndex();
+    let currentAssetIndex = await ArtManager.getCurrentIndex()
     if (currentAssetIndex >= totalAssets) {
-      currentAssetIndex = 0;
+      currentAssetIndex = 0
     }
-    await ArtManager.setCurrentIndex(currentAssetIndex);
-    currentBackgroundAssetIndex = currentAssetIndex;
+    await ArtManager.setCurrentIndex(currentAssetIndex)
+    currentBackgroundAssetIndex = currentAssetIndex
 
-    const currentLoad = await ArtManager.loadImage(currentAssetIndex);
+    const currentLoad = await ArtManager.loadImage(currentAssetIndex)
 
     if (!currentLoad) {
-      console.warn('Failed to pre-load current image');
+      console.warn('Failed to pre-load current image')
     }
   } catch (error) {
-    console.error('Error during extension setup:', error);
+    console.error('Error during extension setup:', error)
   }
-});
+})
 
 chrome.browserAction.onClicked.addListener((tab) => {
   const siteUrl =
-    'https://artsandculture.google.com?utm_source=firefox_extension&utm_medium=default_link&utm_campaign=firefox_extension';
+    'https://artsandculture.google.com?utm_source=firefox_extension&utm_medium=default_link&utm_campaign=firefox_extension'
   chrome.tabs.create({
     active: true,
     openerTabId: tab.id,
     url: siteUrl,
-  });
-});
+  })
+})
 
 chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
   if (message.type === ExtMessageType.GET_CURRENT_ART) {
-    const tabId = sender.tab?.id;
+    const tabId = sender.tab?.id
     if (tabId) {
       handleGetCurrentArtAsync()
-        .then(response => {
+        .then((response) => {
           chrome.tabs.sendMessage(tabId, {
             type: 'getCurrentArtResponse',
-            data: response
-          });
+            data: response,
+          })
         })
-        .catch(error => {
-          console.error('Error getting art:', error);
+        .catch((error) => {
+          console.error('Error getting art:', error)
           chrome.tabs.sendMessage(tabId, {
             type: 'getCurrentArtResponse',
-            data: { error: 'Failed to load artwork: ' + error.message }
-          });
-        });
+            data: { error: 'Failed to load artwork: ' + error.message },
+          })
+        })
     }
-    return false;
+    return false
   }
-  
+
   switch (message.type) {
     case ExtMessageType.ROTATE_TO_NEXT:
-      handleRotateToNext();
-      break;
+      handleRotateToNext()
+      break
     case ExtMessageType.SWITCH_PROVIDER:
-      handleSwitchProvider(message.provider);
-      break;
+      handleSwitchProvider(message.provider)
+      break
     default:
-      console.error('Unknown message type:', message.type);
+      console.error('Unknown message type:', message.type)
   }
 
-  return false;
-});
+  return false
+})
 
 async function handleGetCurrentArtAsync(): Promise<any> {
-  const syncSuccess = await ArtManager.syncData();
+  const syncSuccess = await ArtManager.syncData()
   if (!syncSuccess) {
-    return { error: 'Failed to sync art data' };
+    return { error: 'Failed to sync art data' }
   }
 
-  const totalAssets = await ArtManager.syncedAssetCount();
+  const totalAssets = await ArtManager.syncedAssetCount()
   if (totalAssets === 0) {
-    return { error: 'No assets available from current provider' };
+    return { error: 'No assets available from current provider' }
   }
 
-  const currentIndex = await ArtManager.getCurrentIndex();
-  currentBackgroundAssetIndex = currentIndex;
+  const currentIndex = await ArtManager.getCurrentIndex()
+  currentBackgroundAssetIndex = currentIndex
 
-  let asset = await ArtManager.getAsset(currentBackgroundAssetIndex);
-  
+  let asset = await ArtManager.getAsset(currentBackgroundAssetIndex)
+
   if (!asset) {
-    const validIndex = await findNextValidAsset(currentBackgroundAssetIndex, totalAssets);
+    const validIndex = await findNextValidAsset(
+      currentBackgroundAssetIndex,
+      totalAssets,
+    )
     if (validIndex === -1) {
-      return { error: 'No valid assets available' };
+      return { error: 'No valid assets available' }
     }
-    currentBackgroundAssetIndex = validIndex;
-    await ArtManager.setCurrentIndex(validIndex);
-    asset = await ArtManager.getAsset(validIndex);
+    currentBackgroundAssetIndex = validIndex
+    await ArtManager.setCurrentIndex(validIndex)
+    asset = await ArtManager.getAsset(validIndex)
   }
 
   if (!asset) {
-    return { error: 'Failed to load asset data' };
+    return { error: 'Failed to load asset data' }
   }
 
-  await ArtManager.loadImage(currentBackgroundAssetIndex);
-  const imageUrl = await ArtManager.getDisplayImageUrl(currentBackgroundAssetIndex);
+  await ArtManager.loadImage(currentBackgroundAssetIndex)
+  const imageUrl = await ArtManager.getDisplayImageUrl(
+    currentBackgroundAssetIndex,
+  )
 
   return {
     asset: asset,
     imageUrl,
     totalAssets,
-    currentIndex: currentBackgroundAssetIndex
-  };
+    currentIndex: currentBackgroundAssetIndex,
+  }
 }
 
 async function handleRotateToNext(): Promise<void> {
   try {
-    const totalAssets = await ArtManager.syncedAssetCount();
-    let newIndex = currentBackgroundAssetIndex + 1;
+    const totalAssets = await ArtManager.syncedAssetCount()
+    let newIndex = currentBackgroundAssetIndex + 1
     if (newIndex >= totalAssets) {
-      newIndex = 0;
+      newIndex = 0
     }
 
     // Find next valid asset
-    const validIndex = await findNextValidAsset(newIndex, totalAssets);
+    const validIndex = await findNextValidAsset(newIndex, totalAssets)
     if (validIndex === -1) {
-      console.error('No valid assets found');
-      return;
+      console.error('No valid assets found')
+      return
     }
 
-    currentBackgroundAssetIndex = validIndex;
-    await ArtManager.setCurrentIndex(validIndex);
+    currentBackgroundAssetIndex = validIndex
+    await ArtManager.setCurrentIndex(validIndex)
 
-    const asset = await ArtManager.getAsset(validIndex);
-    await ArtManager.loadImage(validIndex);
-    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex);
+    const asset = await ArtManager.getAsset(validIndex)
+    await ArtManager.loadImage(validIndex)
+    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
 
     // Notify all new tab pages
     chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
+      tabs.forEach((tab) => {
         if (tab.id && tab.url?.includes('newtab')) {
           chrome.tabs.sendMessage(tab.id, {
             type: ExtMessageType.ART_UPDATED,
             asset,
             imageUrl,
             totalAssets,
-            currentIndex: validIndex
-          });
+            currentIndex: validIndex,
+          })
         }
-      });
-    });
+      })
+    })
   } catch (error) {
-    console.error('Error rotating to next:', error);
+    console.error('Error rotating to next:', error)
   }
 }
 
 async function handleSwitchProvider(providerName: string): Promise<void> {
   try {
-    await ArtManager.setCurrentProvider(providerName);
-    await ArtManager.syncData();
-    
-    const totalAssets = await ArtManager.syncedAssetCount();
-    const validIndex = await findNextValidAsset(0, totalAssets);
-    
+    await ArtManager.setCurrentProvider(providerName)
+    await ArtManager.syncData()
+
+    const totalAssets = await ArtManager.syncedAssetCount()
+    const validIndex = await findNextValidAsset(0, totalAssets)
+
     if (validIndex === -1) {
-      console.error('No valid assets in new provider');
-      return;
+      console.error('No valid assets in new provider')
+      return
     }
 
-    currentBackgroundAssetIndex = validIndex;
-    await ArtManager.setCurrentIndex(validIndex);
+    currentBackgroundAssetIndex = validIndex
+    await ArtManager.setCurrentIndex(validIndex)
 
-    const asset = await ArtManager.getAsset(validIndex);
-    await ArtManager.loadImage(validIndex);
-    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex);
+    const asset = await ArtManager.getAsset(validIndex)
+    await ArtManager.loadImage(validIndex)
+    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
 
     // Notify all new tab pages
     chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
+      tabs.forEach((tab) => {
         if (tab.id && tab.url?.includes('newtab')) {
           chrome.tabs.sendMessage(tab.id, {
             type: ExtMessageType.ART_UPDATED,
             asset,
             imageUrl,
             totalAssets,
-            currentIndex: validIndex
-          });
+            currentIndex: validIndex,
+          })
         }
-      });
-    });
+      })
+    })
   } catch (error) {
-    console.error('Error switching provider:', error);
+    console.error('Error switching provider:', error)
   }
 }
 
-async function findNextValidAsset(startIndex: number, totalAssets: number): Promise<number> {
-  const provider = await ArtManager.getCurrentProvider();
-  
+async function findNextValidAsset(
+  startIndex: number,
+  totalAssets: number,
+): Promise<number> {
+  const provider = await ArtManager.getCurrentProvider()
+
   // For Google Arts, assets are pre-validated, so just return the index
   if (provider.name === 'google-arts') {
-    return startIndex;
+    return startIndex
   }
 
   // For Met Museum, search for valid assets
-  let attempts = 0;
-  const maxAttempts = 10;
-  let index = startIndex;
+  let attempts = 0
+  const maxAttempts = 10
+  let index = startIndex
 
   while (attempts < maxAttempts) {
-    const asset = await ArtManager.getAsset(index);
+    const asset = await ArtManager.getAsset(index)
     if (asset) {
-      return index;
+      return index
     }
-    
-    index++;
+
+    index++
     if (index >= totalAssets) {
-      index = 0;
+      index = 0
     }
-    attempts++;
+    attempts++
   }
 
-  return -1; // No valid asset found
+  return -1 // No valid asset found
 }

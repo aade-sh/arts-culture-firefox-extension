@@ -1,7 +1,5 @@
-import { h } from 'preact';
-
 interface ErrorDisplayProps {
-  message: string;
+  message: string
 }
 
 export function ErrorDisplay({ message }: ErrorDisplayProps) {
@@ -9,5 +7,5 @@ export function ErrorDisplay({ message }: ErrorDisplayProps) {
     <div className="loading">
       <p style={{ color: '#ff6b6b' }}>{message}</p>
     </div>
-  );
+  )
 }
