@@ -24,12 +24,6 @@ export function NewTabApp() {
     }
   };
 
-  const handleTurnoverChange = async (checked: boolean) => {
-    // For now, we'll handle this as a simple state update
-    // In a full implementation, you'd want to persist this setting
-    console.log('Turnover setting changed:', checked);
-  };
-
   // Show full loading screen only if no image exists yet
   if (loading && !imageUrl) {
     return <LoadingSpinner />;
@@ -55,7 +49,6 @@ export function NewTabApp() {
         onClose={() => setShowSettings(false)}
         userSettings={userSettings}
         onProviderChange={switchProvider}
-        onTurnoverChange={handleTurnoverChange}
       />
     </>
   );

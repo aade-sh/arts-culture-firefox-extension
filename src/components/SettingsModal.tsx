@@ -7,7 +7,6 @@ interface SettingsModalProps {
   onClose: () => void;
   userSettings: UserSettings;
   onProviderChange: (provider: string) => Promise<void>;
-  onTurnoverChange: (checked: boolean) => Promise<void>;
 }
 
 export function SettingsModal({ 
@@ -15,23 +14,12 @@ export function SettingsModal({
   onClose, 
   userSettings, 
   onProviderChange, 
-  onTurnoverChange 
 }: SettingsModalProps) {
   if (!isOpen) return null;
 
   const handleProviderChange = async (e: TargetedEvent<HTMLSelectElement, Event>) => {
     const newProvider = e.currentTarget.value;
     await onProviderChange(newProvider);
-  };
-
-  const handleTurnoverChange = async (e: TargetedEvent<HTMLInputElement, Event>) => {
-    const checked = e.currentTarget.checked;
-    await onTurnoverChange(checked);
-    
-    chrome.runtime.sendMessage({
-      type: 'userSettingsUpdate',
-      payload: { key: 'TURNOVER_ALWAYS', value: checked },
-    });
   };
 
   return (
@@ -58,17 +46,6 @@ export function SettingsModal({
               <option value="google-arts">Google Arts & Culture</option>
               <option value="met-museum">Metropolitan Museum of Art</option>
             </select>
-          </div>
-          <div className="setting-item">
-            <label htmlFor="turnover-always">
-              Always show new artwork on new tab
-            </label>
-            <input 
-              type="checkbox" 
-              id="turnover-always"
-              checked={userSettings.TURNOVER_ALWAYS || false}
-              onChange={handleTurnoverChange}
-            />
           </div>
         </div>
       </div>
