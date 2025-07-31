@@ -1,17 +1,50 @@
 # Arts and Culture New Tab - Firefox Extension
 
-TypeScript-based Firefox extension that transforms your new tab into a curated art gallery featuring works from Google Arts & Culture and Metropolitan Museum.\
-\
+Firefox extension that transforms your new tab into a curated art gallery featuring works from Google Arts & Culture and Metropolitan Museum.
+
 Inspired by [Google Arts and Culture extension](https://chromewebstore.google.com/detail/google-arts-culture/akimgimeeoiognljlfchpbkpfbmeapkh?hl=en)
 
-## Installation
+## Build Requirements
 
-1. Add icons to `icons/` directory (16x16, 32x32, 48x48, 128x128 px)
-2. Open Firefox → `about:debugging` → "This Firefox"
-3. Click "Load Temporary Add-on" → select `manifest.json`
-4. Open new tab to enjoy!
+- **Node.js**: v18.0.0 or higher
+- **Package Manager**: pnpm (recommended) or npm
+- **Operating System**: macOS, Linux, or Windows
 
-## Structure
+## Build Instructions
+
+1. **Install Node.js and pnpm**:
+
+   ```bash
+   # Install Node.js from https://nodejs.org
+   # Install pnpm globally
+   npm install -g pnpm
+   ```
+
+2. **Clone and build the extension**:
+
+   ```bash
+   git clone <repository-url>
+   cd arts-and-culture-firefox-extension
+   pnpm install
+   pnpm run build
+   ```
+
+3. **Add required icons** to `icons/` directory (16x16, 32x32, 48x48, 128x128 px)
+
+4. **Load in Firefox**:
+   - Open `about:debugging` → "This Firefox"
+   - Click "Load Temporary Add-on" → select `manifest.json`
+
+## Build Script
+
+The `pnpm run build` command executes:
+
+- TypeScript compilation with Rollup
+- Preact/React compatibility layer setup
+- Code bundling and minification for production
+- Generates `newtab/newtab-bundle.js` and `dist/background.js`
+
+## Project Structure
 
 ```
 ├── manifest.json          # Extension config
@@ -23,16 +56,6 @@ Inspired by [Google Arts and Culture extension](https://chromewebstore.google.co
 ├── newtab/               # New tab page
 └── icons/                # Extension icons (need to add)
 ```
-
-## Development
-
-```bash
-pnpm install
-pnpm run build
-```
-
-**Debug**: `about:debugging` → extension console  
-**Test**: Load via "Load Temporary Add-on"
 
 ## Legal
 
