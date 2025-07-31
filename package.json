@@ -4,24 +4,18 @@
   "type": "module",
   "description": "Transform your new tab into a gallery of amazing artworks",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
+    "build": "pnpm run build:newtab && pnpm run build:background",
+    "build:newtab": "BUILD_TARGET=newtab vite build",
+    "build:background": "BUILD_TARGET=background vite build",
+    "dev": "pnpm run build && pnpm run dev:watch",
+    "dev:watch": "BUILD_TARGET=newtab vite build --watch",
     "clean": "rm -rf dist newtab/newtab-bundle.js"
   },
   "devDependencies": {
-    "@rollup/plugin-alias": "^5.1.0",
-    "@rollup/plugin-commonjs": "^25.0.7",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-replace": "^5.0.5",
-    "rollup": "^4.9.6",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@babel/core": "^7.23.7",
-    "@babel/preset-react": "^7.23.3",
-    "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "typescript": "^5.3.3",
+    "@preact/preset-vite": "^2.10.2",
     "@types/chrome": "^0.0.268",
-    "tslib": "^2.6.2"
+    "typescript": "^5.3.3",
+    "vite": "^7.0.6"
   },
   "dependencies": {
     "preact": "^10.19.3"

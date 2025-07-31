@@ -35,26 +35,48 @@ Inspired by [Google Arts and Culture extension](https://chromewebstore.google.co
    - Open `about:debugging` → "This Firefox"
    - Click "Load Temporary Add-on" → select `manifest.json`
 
-## Build Script
+## Build Scripts
 
-The `pnpm run build` command executes:
+Available commands:
 
-- TypeScript compilation with Rollup
-- Preact/React compatibility layer setup
+```bash
+pnpm run build           # Build both newtab and background scripts
+pnpm run build:newtab    # Build only the newtab component
+pnpm run build:background # Build only the background script
+pnpm run dev             # Build and watch for changes
+pnpm run clean           # Clean build artifacts
+```
+
+The build process uses:
+
+- **Vite** for fast bundling and development
+- **TypeScript** compilation with ES2020 target
+- **Preact** with React compatibility layer
 - Code bundling and minification for production
 - Generates `newtab/newtab-bundle.js` and `dist/background.js`
 
 ## Project Structure
 
 ```
-├── manifest.json          # Extension config
-├── src/
+├── manifest.json          # Extension configuration
+├── src/                   # Source code
 │   ├── background/        # Background scripts (TypeScript)
-│   ├── components/        # React components
-│   ├── hooks/            # Custom hooks
-│   └── types.ts          # Type definitions
-├── newtab/               # New tab page
-└── icons/                # Extension icons (need to add)
+│   │   ├── background.ts  # Main background script
+│   │   ├── art-manager.ts # Art data management
+│   │   └── providers/     # Art provider integrations
+│   ├── components/        # Preact/React components
+│   ├── hooks/            # Custom React hooks
+│   ├── types/            # TypeScript type definitions
+│   └── newtab.tsx        # New tab page entry point
+├── newtab/               # New tab page assets
+│   ├── newtab.html       # HTML template
+│   ├── newtab.css        # Styles
+│   └── newtab-bundle.js  # Generated bundle
+├── dist/                 # Build output
+│   └── background.js     # Generated background script
+├── icons/                # Extension icons
+├── vite.config.ts        # Vite build configuration
+└── tsconfig.json         # TypeScript configuration
 ```
 
 ## Legal
