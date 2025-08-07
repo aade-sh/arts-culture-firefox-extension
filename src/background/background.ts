@@ -1,9 +1,9 @@
 import { instance as ArtManager } from './art-manager'
-import { ArtAsset } from '../types'
+import { ArtAsset, ProviderName } from '../types'
 
 interface ExtensionMessage {
   type: string
-  provider?: string
+  provider?: ProviderName
 }
 
 type GetCurrentArtResponse =
@@ -194,7 +194,7 @@ async function handleRotateToNext(): Promise<void> {
   }
 }
 
-async function handleSwitchProvider(providerName: string): Promise<void> {
+async function handleSwitchProvider(providerName: ProviderName): Promise<void> {
   try {
     await ArtManager.setCurrentProvider(providerName)
     await ArtManager.syncData()

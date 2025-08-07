@@ -7,10 +7,14 @@ import {
   ArtManager as IArtManager,
   UserSettings,
   UserSettingUpdate,
+  ProviderName,
+  STORAGE_KEYS,
+  PROVIDERS,
+  DEFAULT_PROVIDER,
 } from '../types'
 
 interface ArtState {
-  provider: string
+  provider: ProviderName
   currentIndex: number
   turnoverAlways: boolean
   lastUpdated: number
@@ -20,7 +24,7 @@ export class ArtManager implements IArtManager {
   private providers = new Map<string, ArtProvider>()
   private currentProvider: ArtProvider | null = null
   private state: ArtState = {
-    provider: 'google-arts',
+    provider: DEFAULT_PROVIDER,
     currentIndex: 0,
     turnoverAlways: false,
     lastUpdated: Date.now(),
@@ -45,7 +49,7 @@ export class ArtManager implements IArtManager {
 
   async loadState(): Promise<void> {
     try {
-      const stored = await ExtensionStorage.readData('art_state')
+      const stored = await ExtensionStorage.readData(STORAGE_KEYS.ART_STATE)
       if (stored) {
         this.state = { ...this.state, ...JSON.parse(stored) }
       }
@@ -56,7 +60,7 @@ export class ArtManager implements IArtManager {
 
   async saveState(): Promise<void> {
     this.state.lastUpdated = Date.now()
-    await ExtensionStorage.writeData('art_state', JSON.stringify(this.state))
+    await ExtensionStorage.writeData(STORAGE_KEYS.ART_STATE, JSON.stringify(this.state))
   }
 
   async getCurrentProvider(): Promise<ArtProvider> {
@@ -66,13 +70,13 @@ export class ArtManager implements IArtManager {
 
       if (!this.currentProvider) {
         console.warn(
-          `Provider ${this.state.provider} not found, using google-arts`,
+          `Provider ${this.state.provider} not found, using ${DEFAULT_PROVIDER}`,
         )
-        this.currentProvider = this.getProvider('google-arts') || null
+        this.currentProvider = this.getProvider(DEFAULT_PROVIDER) || null
         if (!this.currentProvider) {
           throw new Error('No providers available')
         }
-        this.state.provider = 'google-arts'
+        this.state.provider = DEFAULT_PROVIDER
         await this.saveState()
       }
     }
@@ -80,7 +84,7 @@ export class ArtManager implements IArtManager {
     return this.currentProvider
   }
 
-  async setCurrentProvider(providerName: string): Promise<void> {
+  async setCurrentProvider(providerName: ProviderName): Promise<void> {
     const provider = this.getProvider(providerName)
     if (!provider) {
       throw new Error(`Provider ${providerName} not found`)

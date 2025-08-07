@@ -1,3 +1,32 @@
+// Storage keys
+export const STORAGE_KEYS = {
+  ART_STATE: 'art_state',
+  CACHED_IMAGES: 'cached_images',
+  GOOGLE_ARTS_DATA: 'google_arts_data',
+  MET_MUSEUM_DATA: 'met_museum_data',
+} as const
+
+export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS]
+
+// Cache key types
+export type CacheKeyType = 'timestamp' | 'assets' | 'ids' | 'data'
+export type CacheKey = `${ProviderName}:cache:${CacheKeyType}`
+
+// Helper function to create cache keys
+export const createCacheKey = (provider: ProviderName, type: CacheKeyType): CacheKey => {
+  return `${provider}:cache:${type}`
+}
+
+// Providers
+export const PROVIDERS = {
+  GOOGLE_ARTS: 'google-arts',
+  MET_MUSEUM: 'met-museum',
+} as const
+
+export type ProviderName = typeof PROVIDERS[keyof typeof PROVIDERS]
+
+export const DEFAULT_PROVIDER: ProviderName = PROVIDERS.GOOGLE_ARTS
+
 export interface ArtAsset {
   id: string
   title: string
@@ -15,13 +44,13 @@ export interface ArtAsset {
 }
 
 export interface UserSettings {
-  ART_PROVIDER?: string
+  ART_PROVIDER?: ProviderName
   TURNOVER_ALWAYS?: boolean
 }
 
 export type UserSettingUpdate = 
   | { key: 'turnoverAlways'; value: boolean }
-  | { key: 'artProvider'; value: string }
+  | { key: 'artProvider'; value: ProviderName }
 
 export interface ArtState {
   currentAssetIndex: number

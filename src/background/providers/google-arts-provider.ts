@@ -1,6 +1,6 @@
 import { ArtProvider } from './art-provider-base'
 import { GoogleArtsAsset, GoogleArtsJsonData, GoogleArtsRawData } from '../models/google-arts-asset'
-import { ArtAsset } from '../../types'
+import { ArtAsset, PROVIDERS } from '../../types'
 
 export class GoogleArtsProvider extends ArtProvider {
   private _syncedAssetData: GoogleArtsAsset[] = []
@@ -8,7 +8,7 @@ export class GoogleArtsProvider extends ArtProvider {
     'https://www.gstatic.com/culturalinstitute/tabext/imax_2_2.json'
 
   constructor() {
-    super('google-arts', 'Google Arts & Culture')
+    super(PROVIDERS.GOOGLE_ARTS, 'Google Arts & Culture')
   }
 
   async syncData(): Promise<boolean> {

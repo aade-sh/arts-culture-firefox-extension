@@ -1,13 +1,13 @@
-import { ArtAsset, ArtProvider as IArtProvider } from '../../types'
+import { ArtAsset, ArtProvider as IArtProvider, ProviderName, CacheKeyType } from '../../types'
 import { Cache } from '../cache-manager'
 
 export abstract class ArtProvider implements IArtProvider {
-  name: string
+  name: ProviderName
   displayName: string
   protected DATA_REQUEST_OPTIONS: RequestInit
   protected cache: typeof Cache
 
-  constructor(name: string, displayName: string) {
+  constructor(name: ProviderName, displayName: string) {
     this.name = name
     this.displayName = displayName
     this.DATA_REQUEST_OPTIONS = {
@@ -23,11 +23,11 @@ export abstract class ArtProvider implements IArtProvider {
   abstract getDisplayImageUrl(assetId: number): Promise<string | null>
   abstract getDetailsUrl(asset: ArtAsset): string
 
-  protected async getCachedData<T = unknown>(key: string): Promise<T | null> {
+  protected async getCachedData<T = unknown>(key: CacheKeyType): Promise<T | null> {
     return await this.cache.getCachedData<T>(this.name, key)
   }
 
-  protected async setCachedData<T = unknown>(key: string, data: T): Promise<void> {
+  protected async setCachedData<T = unknown>(key: CacheKeyType, data: T): Promise<void> {
     return await this.cache.setCachedData<T>(this.name, key, data)
   }
 

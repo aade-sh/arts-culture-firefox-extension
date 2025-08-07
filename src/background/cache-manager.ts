@@ -1,34 +1,35 @@
 import { ExtensionStorage } from './storage'
+import { createCacheKey, ProviderName, CacheKeyType } from '../types'
 
 export class CacheManager {
   private readonly CACHE_EXPIRY = 24 * 60 * 60 * 1000 // 24 hours
 
-  async getCacheTimestamp(namespace: string): Promise<number | null> {
+  async getCacheTimestamp(namespace: ProviderName): Promise<number | null> {
     const timestamp = await ExtensionStorage.readData(
-      `${namespace}:cache:timestamp`,
+      createCacheKey(namespace, 'timestamp'),
     )
     return timestamp ? parseInt(timestamp, 10) : null
   }
 
-  async setCacheTimestamp(namespace: string): Promise<number> {
+  async setCacheTimestamp(namespace: ProviderName): Promise<number> {
     const now = Date.now()
     await ExtensionStorage.writeData(
-      `${namespace}:cache:timestamp`,
+      createCacheKey(namespace, 'timestamp'),
       now.toString(),
     )
     return now
   }
 
-  async isCacheValid(namespace: string): Promise<boolean> {
+  async isCacheValid(namespace: ProviderName): Promise<boolean> {
     const timestamp = await this.getCacheTimestamp(namespace)
     if (!timestamp) return false
     return Date.now() - timestamp < this.CACHE_EXPIRY
   }
 
-  async getCachedData<T = unknown>(namespace: string, key: string): Promise<T | null> {
+  async getCachedData<T = unknown>(namespace: ProviderName, key: CacheKeyType): Promise<T | null> {
     if (!(await this.isCacheValid(namespace))) return null
 
-    const data = await ExtensionStorage.readData(`${namespace}:cache:${key}`)
+    const data = await ExtensionStorage.readData(createCacheKey(namespace, key))
     if (!data) return null
 
     try {
@@ -40,27 +41,22 @@ export class CacheManager {
   }
 
   async setCachedData<T = unknown>(
-    namespace: string,
-    key: string,
+    namespace: ProviderName,
+    key: CacheKeyType,
     data: T,
   ): Promise<void> {
     await ExtensionStorage.writeData(
-      `${namespace}:cache:${key}`,
+      createCacheKey(namespace, key),
       JSON.stringify(data),
     )
     await this.setCacheTimestamp(namespace)
   }
 
-  async clearCache(namespace: string): Promise<void> {
-    const keys = [`${namespace}:cache:timestamp`]
-
-    const commonKeys = ['assets', 'ids', 'data']
+  async clearCache(namespace: ProviderName): Promise<void> {
+    const commonKeys: CacheKeyType[] = ['timestamp', 'assets', 'ids', 'data']
+    
     for (const key of commonKeys) {
-      keys.push(`${namespace}:cache:${key}`)
-    }
-
-    for (const key of keys) {
-      await ExtensionStorage.removeData(key)
+      await ExtensionStorage.removeData(createCacheKey(namespace, key))
     }
   }
 

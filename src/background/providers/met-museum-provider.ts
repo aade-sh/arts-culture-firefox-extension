@@ -1,6 +1,6 @@
 import { ArtProvider } from './art-provider-base'
 import { MetMuseumAsset } from '../models/met-museum-asset'
-import { ArtAsset } from '../../types'
+import { ArtAsset, PROVIDERS } from '../../types'
 
 export class MetMuseumProvider extends ArtProvider {
   private _syncedAssetData: (MetMuseumAsset | null)[] = []
@@ -10,7 +10,7 @@ export class MetMuseumProvider extends ArtProvider {
   private isSyncing = false
 
   constructor() {
-    super('met-museum', 'Metropolitan Museum of Art')
+    super(PROVIDERS.MET_MUSEUM, 'Metropolitan Museum of Art')
   }
 
   async syncData(): Promise<boolean> {
