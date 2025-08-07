@@ -21,8 +21,7 @@ interface ArtState {
 }
 
 export class ArtManager implements IArtManager {
-  private providers = new Map<string, ArtProvider>()
-  private currentProvider: ArtProvider | null = null
+  private providers = new Map<ProviderName, ArtProvider>()
   private state: ArtState = {
     provider: DEFAULT_PROVIDER,
     currentIndex: 0,
@@ -39,12 +38,24 @@ export class ArtManager implements IArtManager {
     this.providers.set(provider.name, provider)
   }
 
-  private getProvider(name: string): ArtProvider | undefined {
+  private getProvider(name: ProviderName): ArtProvider | undefined {
     return this.providers.get(name)
+  }
+
+  private get currentProvider(): ArtProvider {
+    const provider = this.getProvider(this.state.provider)
+    if (!provider) {
+      throw new Error(`Provider ${this.state.provider} not found. This indicates an invalid state.`)
+    }
+    return provider
   }
 
   getAllProviders(): ArtProvider[] {
     return Array.from(this.providers.values())
+  }
+
+  getCurrentProviderSync(): ArtProvider {
+    return this.currentProvider
   }
 
   async loadState(): Promise<void> {
@@ -63,73 +74,44 @@ export class ArtManager implements IArtManager {
     await ExtensionStorage.writeData(STORAGE_KEYS.ART_STATE, JSON.stringify(this.state))
   }
 
-  async getCurrentProvider(): Promise<ArtProvider> {
-    if (!this.currentProvider) {
-      await this.loadState()
-      this.currentProvider = this.getProvider(this.state.provider) || null
-
-      if (!this.currentProvider) {
-        console.warn(
-          `Provider ${this.state.provider} not found, using ${DEFAULT_PROVIDER}`,
-        )
-        this.currentProvider = this.getProvider(DEFAULT_PROVIDER) || null
-        if (!this.currentProvider) {
-          throw new Error('No providers available')
-        }
-        this.state.provider = DEFAULT_PROVIDER
-        await this.saveState()
-      }
-    }
-
-    return this.currentProvider
-  }
-
   async setCurrentProvider(providerName: ProviderName): Promise<void> {
     const provider = this.getProvider(providerName)
     if (!provider) {
       throw new Error(`Provider ${providerName} not found`)
     }
 
-    this.currentProvider = provider
     this.state.provider = providerName
     this.state.currentIndex = 0
     await this.saveState()
   }
 
   async syncData(): Promise<boolean> {
-    const provider = await this.getCurrentProvider()
-    return provider.syncData()
+    return this.currentProvider.syncData()
   }
 
   async getAsset(index: number): Promise<ArtAsset | null> {
-    const provider = await this.getCurrentProvider()
-    return provider.getAsset(index)
+    return this.currentProvider.getAsset(index)
   }
 
   async loadImage(assetId: number): Promise<boolean> {
-    const provider = await this.getCurrentProvider()
-    return provider.loadImage(assetId)
+    return this.currentProvider.loadImage(assetId)
   }
 
   async syncedAssetCount(): Promise<number> {
-    const provider = await this.getCurrentProvider()
-    return provider.syncedAssetCount()
+    return this.currentProvider.syncedAssetCount()
   }
 
   async getDisplayImageUrl(assetId: number): Promise<string | null> {
-    if (!this.currentProvider) return null
     return await this.currentProvider.getDisplayImageUrl(assetId)
   }
 
   async getDetailsUrl(assetId: number): Promise<string | null> {
-    const provider = await this.getCurrentProvider()
     const asset = await this.getAsset(assetId)
     if (!asset) return null
-    return provider.getDetailsUrl(asset)
+    return this.currentProvider.getDetailsUrl(asset)
   }
 
   async getCurrentIndex(): Promise<number> {
-    await this.loadState()
     return this.state.currentIndex
   }
 
@@ -139,7 +121,6 @@ export class ArtManager implements IArtManager {
   }
 
   async getTurnoverAlways(): Promise<boolean> {
-    await this.loadState()
     return this.state.turnoverAlways
   }
 
@@ -149,7 +130,6 @@ export class ArtManager implements IArtManager {
   }
 
   async getUserSettings(): Promise<UserSettings> {
-    await this.loadState()
     return {
       TURNOVER_ALWAYS: this.state.turnoverAlways,
       ART_PROVIDER: this.state.provider,

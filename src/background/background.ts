@@ -30,7 +30,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await ArtManager.loadState()
     }
 
-    await ArtManager.getCurrentProvider()
 
     const syncSuccess = await ArtManager.syncData()
     if (!syncSuccess) {
@@ -237,7 +236,7 @@ async function findNextValidAsset(
   startIndex: number,
   totalAssets: number,
 ): Promise<number> {
-  const provider = await ArtManager.getCurrentProvider()
+  const provider = ArtManager.getCurrentProviderSync()
 
   // For Google Arts, assets are pre-validated, so just return the index
   if (provider.name === 'google-arts') {

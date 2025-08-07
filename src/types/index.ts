@@ -72,7 +72,7 @@ export interface ExtensionMessage {
 }
 
 export interface ArtProvider {
-  name: string
+  name: ProviderName
   displayName: string
   syncData(): Promise<boolean>
   getAsset(index: number): Promise<ArtAsset | null>
