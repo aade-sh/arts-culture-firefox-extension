@@ -71,17 +71,15 @@ export class CacheManager {
   async getCachedImage(
     namespace: string,
     imageUrl: string,
-    cacheOptions: CacheQueryOptions = {},
   ): Promise<Response | undefined> {
     const cache = await this.getImageCache(namespace)
-    return await cache.match(imageUrl, cacheOptions)
+    return await cache.match(imageUrl)
   }
 
   async setCachedImage(
     namespace: string,
     imageUrl: string,
     response: Response,
-    cacheOptions: CacheQueryOptions = {},
   ): Promise<Response> {
     const cache = await this.getImageCache(namespace)
     await cache.put(imageUrl, response.clone())
@@ -110,17 +108,11 @@ export class CacheManager {
       method: 'GET',
       headers: { Accept: 'image/*' },
     }
-    const cacheOptions: CacheQueryOptions = {
-      ignoreMethod: true,
-      ignoreSearch: true,
-      ignoreVary: true,
-    }
 
     try {
       let cachedResponse = await this.getCachedImage(
         namespace,
         imageUrl,
-        cacheOptions,
       )
 
       if (!cachedResponse) {
@@ -136,7 +128,6 @@ export class CacheManager {
           namespace,
           imageUrl,
           fetchResponse,
-          cacheOptions,
         )
       }
 

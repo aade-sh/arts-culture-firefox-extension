@@ -1,5 +1,4 @@
 import { instance as ArtManager } from './art-manager'
-import { NewTabSetting } from './settings'
 import { ArtAsset } from '../types'
 
 interface ExtensionMessage {
@@ -7,7 +6,7 @@ interface ExtensionMessage {
   provider?: string
 }
 
-type GetCurrentArtResponse = 
+type GetCurrentArtResponse =
   | { error: string }
   | {
       asset: ArtAsset
@@ -68,43 +67,45 @@ chrome.browserAction.onClicked.addListener((tab) => {
   })
 })
 
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
-  if (message.type === ExtMessageType.GET_CURRENT_ART) {
-    const tabId = sender.tab?.id
-    if (tabId) {
-      handleGetCurrentArtAsync()
-        .then((response) => {
-          chrome.tabs.sendMessage(tabId, {
-            type: 'getCurrentArtResponse',
-            data: response,
+chrome.runtime.onMessage.addListener(
+  (message: ExtensionMessage, sender, sendResponse) => {
+    if (message.type === ExtMessageType.GET_CURRENT_ART) {
+      const tabId = sender.tab?.id
+      if (tabId) {
+        handleGetCurrentArtAsync()
+          .then((response) => {
+            chrome.tabs.sendMessage(tabId, {
+              type: 'getCurrentArtResponse',
+              data: response,
+            })
           })
-        })
-        .catch((error) => {
-          console.error('Error getting art:', error)
-          chrome.tabs.sendMessage(tabId, {
-            type: 'getCurrentArtResponse',
-            data: { error: 'Failed to load artwork: ' + error.message },
+          .catch((error) => {
+            console.error('Error getting art:', error)
+            chrome.tabs.sendMessage(tabId, {
+              type: 'getCurrentArtResponse',
+              data: { error: 'Failed to load artwork: ' + error.message },
+            })
           })
-        })
-    }
-    return false
-  }
-
-  switch (message.type) {
-    case ExtMessageType.ROTATE_TO_NEXT:
-      handleRotateToNext()
-      break
-    case ExtMessageType.SWITCH_PROVIDER:
-      if (message.provider) {
-        handleSwitchProvider(message.provider)
       }
-      break
-    default:
-      console.error('Unknown message type:', message.type)
-  }
+      return false
+    }
 
-  return false
-})
+    switch (message.type) {
+      case ExtMessageType.ROTATE_TO_NEXT:
+        handleRotateToNext()
+        break
+      case ExtMessageType.SWITCH_PROVIDER:
+        if (message.provider) {
+          handleSwitchProvider(message.provider)
+        }
+        break
+      default:
+        console.error('Unknown message type:', message.type)
+    }
+
+    return false
+  },
+)
 
 async function handleGetCurrentArtAsync(): Promise<GetCurrentArtResponse> {
   const syncSuccess = await ArtManager.syncData()
