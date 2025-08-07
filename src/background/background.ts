@@ -30,7 +30,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       await ArtManager.loadState()
     }
 
-
     const syncSuccess = await ArtManager.syncData()
     if (!syncSuccess) {
       console.error('Failed to sync asset data during installation')

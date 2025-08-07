@@ -9,7 +9,6 @@ import {
   UserSettingUpdate,
   ProviderName,
   STORAGE_KEYS,
-  PROVIDERS,
   DEFAULT_PROVIDER,
 } from '../types'
 
@@ -45,7 +44,9 @@ export class ArtManager implements IArtManager {
   private get currentProvider(): ArtProvider {
     const provider = this.getProvider(this.state.provider)
     if (!provider) {
-      throw new Error(`Provider ${this.state.provider} not found. This indicates an invalid state.`)
+      throw new Error(
+        `Provider ${this.state.provider} not found. This indicates an invalid state.`,
+      )
     }
     return provider
   }
@@ -63,15 +64,23 @@ export class ArtManager implements IArtManager {
       const stored = await ExtensionStorage.readData(STORAGE_KEYS.ART_STATE)
       if (stored) {
         this.state = { ...this.state, ...JSON.parse(stored) }
+      } else {
+        // No stored state exists, save the defaults
+        await this.saveState()
       }
     } catch (error) {
       console.warn('Failed to load state, using defaults:', error)
+      // Save defaults even if loading failed
+      await this.saveState()
     }
   }
 
   async saveState(): Promise<void> {
     this.state.lastUpdated = Date.now()
-    await ExtensionStorage.writeData(STORAGE_KEYS.ART_STATE, JSON.stringify(this.state))
+    await ExtensionStorage.writeData(
+      STORAGE_KEYS.ART_STATE,
+      JSON.stringify(this.state),
+    )
   }
 
   async setCurrentProvider(providerName: ProviderName): Promise<void> {

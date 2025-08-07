@@ -26,7 +26,10 @@ export class CacheManager {
     return Date.now() - timestamp < this.CACHE_EXPIRY
   }
 
-  async getCachedData<T = unknown>(namespace: ProviderName, key: CacheKeyType): Promise<T | null> {
+  async getCachedData<T = unknown>(
+    namespace: ProviderName,
+    key: CacheKeyType,
+  ): Promise<T | null> {
     if (!(await this.isCacheValid(namespace))) return null
 
     const data = await ExtensionStorage.readData(createCacheKey(namespace, key))
@@ -54,7 +57,7 @@ export class CacheManager {
 
   async clearCache(namespace: ProviderName): Promise<void> {
     const commonKeys: CacheKeyType[] = ['timestamp', 'assets', 'ids', 'data']
-    
+
     for (const key of commonKeys) {
       await ExtensionStorage.removeData(createCacheKey(namespace, key))
     }
@@ -106,10 +109,7 @@ export class CacheManager {
     }
 
     try {
-      let cachedResponse = await this.getCachedImage(
-        namespace,
-        imageUrl,
-      )
+      let cachedResponse = await this.getCachedImage(namespace, imageUrl)
 
       if (!cachedResponse) {
         const fetchResponse = await fetch(imageUrl, {

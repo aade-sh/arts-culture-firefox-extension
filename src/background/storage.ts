@@ -1,7 +1,10 @@
 import { StorageKey, CacheKey } from '../types'
 
 export class ExtensionStorage {
-  static async writeData(key: StorageKey | CacheKey, data: string): Promise<void> {
+  static async writeData(
+    key: StorageKey | CacheKey,
+    data: string,
+  ): Promise<void> {
     try {
       await chrome.storage.local.set({ [key]: data })
     } catch (error) {
@@ -30,5 +33,4 @@ export class ExtensionStorage {
   static async clear(): Promise<void> {
     await chrome.storage.local.clear()
   }
-
 }
