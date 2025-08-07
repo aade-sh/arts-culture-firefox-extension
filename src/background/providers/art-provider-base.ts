@@ -23,12 +23,12 @@ export abstract class ArtProvider implements IArtProvider {
   abstract getDisplayImageUrl(assetId: number): Promise<string | null>
   abstract getDetailsUrl(asset: ArtAsset): string
 
-  protected async getCachedData(key: string): Promise<any> {
-    return await this.cache.getCachedData(this.name, key)
+  protected async getCachedData<T = unknown>(key: string): Promise<T | null> {
+    return await this.cache.getCachedData<T>(this.name, key)
   }
 
-  protected async setCachedData(key: string, data: any): Promise<void> {
-    return await this.cache.setCachedData(this.name, key, data)
+  protected async setCachedData<T = unknown>(key: string, data: T): Promise<void> {
+    return await this.cache.setCachedData<T>(this.name, key, data)
   }
 
   async loadImage(assetId: number): Promise<boolean> {

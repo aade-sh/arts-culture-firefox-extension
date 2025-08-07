@@ -1,12 +1,22 @@
 import { ArtAsset } from '../../types'
 
-interface GoogleArtsRawData {
+export interface GoogleArtsRawData {
   id?: string
   title?: string
   creator?: string
   attribution?: string
   image?: string
   link?: string
+}
+
+export interface GoogleArtsJsonData {
+  id: string
+  title: string
+  creator: string
+  attribution: string
+  remoteImageUrl: string
+  detailsUrl: string
+  provider: string
 }
 
 export class GoogleArtsAsset implements ArtAsset {
@@ -74,7 +84,7 @@ export class GoogleArtsAsset implements ArtAsset {
     }
   }
 
-  static fromJSON(json: any): GoogleArtsAsset {
+  static fromJSON(json: GoogleArtsJsonData): GoogleArtsAsset {
     return new GoogleArtsAsset(json)
   }
 

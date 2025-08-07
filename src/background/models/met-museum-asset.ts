@@ -15,6 +15,16 @@ interface MetMuseumRawData {
   isPublicDomain?: boolean
 }
 
+interface MetMuseumJsonData {
+  id: string
+  title: string
+  creator: string
+  attribution: string
+  remoteImageUrl: string
+  detailsUrl: string
+  provider: string
+}
+
 export class MetMuseumAsset implements ArtAsset {
   id: string
   title: string
@@ -105,7 +115,7 @@ export class MetMuseumAsset implements ArtAsset {
     }
   }
 
-  static fromJSON(json: any): MetMuseumAsset {
+  static fromJSON(json: MetMuseumJsonData): MetMuseumAsset {
     const asset = new MetMuseumAsset({
       objectID: parseInt(json.id, 10),
       title: json.title,

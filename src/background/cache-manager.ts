@@ -25,7 +25,7 @@ export class CacheManager {
     return Date.now() - timestamp < this.CACHE_EXPIRY
   }
 
-  async getCachedData(namespace: string, key: string): Promise<any> {
+  async getCachedData<T = unknown>(namespace: string, key: string): Promise<T | null> {
     if (!(await this.isCacheValid(namespace))) return null
 
     const data = await ExtensionStorage.readData(`${namespace}:cache:${key}`)
@@ -39,10 +39,10 @@ export class CacheManager {
     }
   }
 
-  async setCachedData(
+  async setCachedData<T = unknown>(
     namespace: string,
     key: string,
-    data: any,
+    data: T,
   ): Promise<void> {
     await ExtensionStorage.writeData(
       `${namespace}:cache:${key}`,

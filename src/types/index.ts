@@ -19,6 +19,10 @@ export interface UserSettings {
   TURNOVER_ALWAYS?: boolean
 }
 
+export type UserSettingUpdate = 
+  | { key: 'turnoverAlways'; value: boolean }
+  | { key: 'artProvider'; value: string }
+
 export interface ArtState {
   currentAssetIndex: number
   totalAssets: number
@@ -34,8 +38,7 @@ export interface ExtensionMessage {
   payload?: {
     currentAssetIndex?: number
     newAssetIndex?: number
-    key?: string
-    value?: any
+    setting?: UserSettingUpdate
   }
 }
 
@@ -62,7 +65,7 @@ export interface ArtManager {
   getDetailsUrl(index: number): Promise<string | null>
   setCurrentProvider(provider: string): Promise<void>
   setTurnoverAlways(value: boolean): Promise<void>
-  setUserSetting(key: string, value: any): Promise<void>
+  setUserSetting(setting: UserSettingUpdate): Promise<void>
 }
 
 // Global declarations

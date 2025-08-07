@@ -29,12 +29,4 @@ export class ExtensionStorage {
     await chrome.storage.local.clear()
   }
 
-  static async writeValue(key: string, value: any): Promise<void> {
-    return this.writeData(key, value)
-  }
-
-  static async readValue(key: string, defaultValue: any = null): Promise<any> {
-    const result = await this.readData(key)
-    return result !== null ? result : defaultValue
-  }
 }

@@ -1,5 +1,5 @@
 import { ArtProvider } from './art-provider-base'
-import { GoogleArtsAsset } from '../models/google-arts-asset'
+import { GoogleArtsAsset, GoogleArtsJsonData, GoogleArtsRawData } from '../models/google-arts-asset'
 import { ArtAsset } from '../../types'
 
 export class GoogleArtsProvider extends ArtProvider {
@@ -13,9 +13,9 @@ export class GoogleArtsProvider extends ArtProvider {
 
   async syncData(): Promise<boolean> {
     try {
-      const cachedData = await this.getCachedData('assets')
+      const cachedData = await this.getCachedData<GoogleArtsJsonData[]>('assets')
       if (cachedData) {
-        this._syncedAssetData = cachedData.map((json: any) =>
+        this._syncedAssetData = cachedData.map((json) =>
           GoogleArtsAsset.fromJSON(json),
         )
         return true
@@ -30,9 +30,9 @@ export class GoogleArtsProvider extends ArtProvider {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data: GoogleArtsRawData[] = await response.json()
       this._syncedAssetData = data
-        .map((rawAsset: any) => GoogleArtsAsset.fromApiResponse(rawAsset))
+        .map((rawAsset: GoogleArtsRawData) => GoogleArtsAsset.fromApiResponse(rawAsset))
         .filter((asset: GoogleArtsAsset) => asset.isValid())
 
       await this.setCachedData(

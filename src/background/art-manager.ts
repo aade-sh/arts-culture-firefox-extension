@@ -6,6 +6,7 @@ import {
   ArtProvider,
   ArtManager as IArtManager,
   UserSettings,
+  UserSettingUpdate,
 } from '../types'
 
 interface ArtState {
@@ -151,11 +152,11 @@ export class ArtManager implements IArtManager {
     }
   }
 
-  async setUserSetting(key: string, value: any): Promise<void> {
-    if (key === 'turnoverAlways') {
-      await this.setTurnoverAlways(value)
-    } else if (key === 'artProvider') {
-      await this.setCurrentProvider(value)
+  async setUserSetting(setting: UserSettingUpdate): Promise<void> {
+    if (setting.key === 'turnoverAlways') {
+      await this.setTurnoverAlways(setting.value)
+    } else if (setting.key === 'artProvider') {
+      await this.setCurrentProvider(setting.value)
     }
   }
 }

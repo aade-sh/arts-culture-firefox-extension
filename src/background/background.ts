@@ -1,5 +1,20 @@
 import { instance as ArtManager } from './art-manager'
 import { NewTabSetting } from './settings'
+import { ArtAsset } from '../types'
+
+interface ExtensionMessage {
+  type: string
+  provider?: string
+}
+
+type GetCurrentArtResponse = 
+  | { error: string }
+  | {
+      asset: ArtAsset
+      imageUrl: string | null
+      totalAssets: number
+      currentIndex: number
+    }
 
 const ExtMessageType = {
   GET_CURRENT_ART: 'getCurrentArt',
@@ -53,7 +68,7 @@ chrome.browserAction.onClicked.addListener((tab) => {
   })
 })
 
-chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
   if (message.type === ExtMessageType.GET_CURRENT_ART) {
     const tabId = sender.tab?.id
     if (tabId) {
@@ -80,7 +95,9 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
       handleRotateToNext()
       break
     case ExtMessageType.SWITCH_PROVIDER:
-      handleSwitchProvider(message.provider)
+      if (message.provider) {
+        handleSwitchProvider(message.provider)
+      }
       break
     default:
       console.error('Unknown message type:', message.type)
@@ -89,7 +106,7 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
   return false
 })
 
-async function handleGetCurrentArtAsync(): Promise<any> {
+async function handleGetCurrentArtAsync(): Promise<GetCurrentArtResponse> {
   const syncSuccess = await ArtManager.syncData()
   if (!syncSuccess) {
     return { error: 'Failed to sync art data' }
