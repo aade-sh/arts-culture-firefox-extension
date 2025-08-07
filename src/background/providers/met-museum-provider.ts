@@ -25,7 +25,7 @@ export class MetMuseumProvider extends ArtProvider {
     try {
       this.isSyncing = true
 
-      const cachedIds = await this.getCachedData('ids')
+      const cachedIds = await this.getCachedData<number[]>('ids')
       if (cachedIds) {
         this.allAvailableIds = cachedIds
         return true
