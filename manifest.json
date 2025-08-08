@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Arts and Culture New Tab",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Transform your new tab into a gallery of amazing artworks from Google Arts & Culture, Metropolitan Museum, and other world-class museums",
   "permissions": [
     "storage",
@@ -23,7 +23,8 @@
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
       "48": "icons/icon-48.png",
-      "128": "icons/icon-128.png"
+      "128": "icons/icon-128.png",
+      "256": "icons/icon-256.png"
     }
   },
   "chrome_url_overrides": {
