@@ -9,6 +9,7 @@ interface GetCurrentArtResponse {
     imageUrl?: string | null
     totalAssets?: number
     currentIndex?: number
+    userSettings?: UserSettings
   }
 }
 
@@ -18,6 +19,7 @@ interface ArtUpdatedMessage {
   imageUrl: string | null
   totalAssets: number
   currentIndex: number
+  userSettings: UserSettings
 }
 
 type RuntimeMessage = GetCurrentArtResponse | ArtUpdatedMessage
@@ -102,6 +104,7 @@ export function useArtDisplay() {
             imageUrl: message.data.imageUrl || null,
             totalAssets: message.data.totalAssets || 0,
             currentIndex: message.data.currentIndex || 0,
+            userSettings: message.data.userSettings || {},
             loading: false,
             error: null,
           }))
@@ -113,6 +116,7 @@ export function useArtDisplay() {
           imageUrl: message.imageUrl,
           totalAssets: message.totalAssets,
           currentIndex: message.currentIndex,
+          userSettings: message.userSettings,
           loading: false,
           error: null,
         }))

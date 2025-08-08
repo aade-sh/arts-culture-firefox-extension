@@ -1,4 +1,4 @@
-import { UserSettings } from '../types'
+import { UserSettings, DEFAULT_PROVIDER } from '../types'
 import { TargetedEvent } from 'preact/compat'
 
 interface SettingsModalProps {
@@ -37,7 +37,7 @@ export function SettingsModal({
             <label htmlFor="art-provider">Art Provider</label>
             <select
               id="art-provider"
-              value={userSettings.ART_PROVIDER || 'google-arts'}
+              value={userSettings?.ART_PROVIDER || DEFAULT_PROVIDER}
               onChange={handleProviderChange}
             >
               <option value="google-arts">Google Arts & Culture</option>

@@ -18,6 +18,14 @@ export function NewTabApp() {
     switchProvider,
   } = useArtDisplay()
 
+  const handleProviderChange = async (provider: string) => {
+    try {
+      await switchProvider(provider)
+    } finally {
+      setShowSettings(false)
+    }
+  }
+
   const handleInfo = () => {
     if (currentAsset?.getDetailsUrl) {
       chrome.tabs.create({ url: currentAsset.getDetailsUrl() })
@@ -48,7 +56,7 @@ export function NewTabApp() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         userSettings={userSettings}
-        onProviderChange={switchProvider}
+        onProviderChange={handleProviderChange}
       />
     </>
   )

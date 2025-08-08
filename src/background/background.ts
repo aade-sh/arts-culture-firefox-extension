@@ -1,5 +1,5 @@
 import { instance as ArtManager } from './art-manager'
-import { ArtAsset, ProviderName } from '../types'
+import { ArtAsset, ProviderName, UserSettings } from '../types'
 
 interface ExtensionMessage {
   type: string
@@ -13,6 +13,7 @@ type GetCurrentArtResponse =
       imageUrl: string | null
       totalAssets: number
       currentIndex: number
+      userSettings: UserSettings
     }
 
 const ExtMessageType = {
@@ -143,11 +144,14 @@ async function handleGetCurrentArtAsync(): Promise<GetCurrentArtResponse> {
     currentBackgroundAssetIndex,
   )
 
+  const userSettings = await ArtManager.getUserSettings()
+
   return {
     asset: asset,
     imageUrl,
     totalAssets,
     currentIndex: currentBackgroundAssetIndex,
+    userSettings,
   }
 }
 
@@ -172,6 +176,7 @@ async function handleRotateToNext(): Promise<void> {
     const asset = await ArtManager.getAsset(validIndex)
     await ArtManager.loadImage(validIndex)
     const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
+    const userSettings = await ArtManager.getUserSettings()
 
     // Notify all new tab pages
     chrome.tabs.query({}, (tabs) => {
@@ -183,6 +188,7 @@ async function handleRotateToNext(): Promise<void> {
             imageUrl,
             totalAssets,
             currentIndex: validIndex,
+            userSettings,
           })
         }
       })
@@ -211,6 +217,7 @@ async function handleSwitchProvider(providerName: ProviderName): Promise<void> {
     const asset = await ArtManager.getAsset(validIndex)
     await ArtManager.loadImage(validIndex)
     const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
+    const userSettings = await ArtManager.getUserSettings()
 
     // Notify all new tab pages
     chrome.tabs.query({}, (tabs) => {
@@ -222,6 +229,7 @@ async function handleSwitchProvider(providerName: ProviderName): Promise<void> {
             imageUrl,
             totalAssets,
             currentIndex: validIndex,
+            userSettings,
           })
         }
       })
