@@ -23,7 +23,7 @@ Inspired by [Google Arts and Culture extension](https://chromewebstore.google.co
 2. **Clone and build the extension**:
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/aade-sh/arts-culture-firefox-extension
    cd arts-and-culture-firefox-extension
    pnpm install
    pnpm run build
@@ -79,10 +79,48 @@ The build process uses:
 └── tsconfig.json         # TypeScript configuration
 ```
 
+## Architecture
+
+### Core Design
+
+**Single Manager Pattern**: `ArtManager` coordinates all art operations through a unified interface.
+
+### Components
+
+- **ArtManager** (`src/background/art-manager.ts`) - Central coordinator for providers and state management
+- **Providers** - Pluggable art data sources:
+  - **Interface**: `ArtProvider` contract defines common operations
+  - **Base Class**: `ArtProviderBase` provides shared functionality for caching and HTTP requests
+  - **Implementations**: `GoogleArtsProvider`, `MetMuseumProvider`
+- **Storage Layer** (`src/background/storage.ts`) - Unified storage abstraction
+- **Cache Manager** (`src/background/cache-manager.ts`) - Handles data and image caching with TTL
+
+### Data Flow
+
+1. **Initialize**: Manager starts up and registers available providers
+2. **Route Operations**: All art operations flow through the current active provider
+3. **State Persistence**: User settings and current state persist automatically across sessions
+4. **Caching**: Art metadata and images are cached per-provider with 24-hour expiry
+
+### Storage
+
+The extension uses two different storage mechanisms for optimal performance:
+
+- **Chrome Storage API** (`chrome.storage.local`) - For JSON data including:
+  - Art metadata (titles, creators, URLs)
+  - Cache timestamps and asset counts
+  - User settings and preferences
+- **Web Cache API** (`caches`) - For binary image data:
+  - Cached artwork images
+  - Optimized for large binary assets
+  - Namespace-isolated per art provider
+
+All storage operations are abstracted through the `ExtensionStorage` class in `src/background/storage.ts`.
+
 ## Legal
 
 This is an **unofficial educational project** not affiliated with Google. Art data is accessed through reverse-engineered endpoints and remains property of respective museums and Google Arts & Culture.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License
