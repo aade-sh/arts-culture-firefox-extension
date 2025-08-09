@@ -1,4 +1,3 @@
-import { h, Fragment } from 'preact'
 import { useState } from 'preact/hooks'
 import { useArtDisplay } from './hooks/useArtDisplay'
 import { LoadingSpinner } from './components/LoadingSpinner'

@@ -1,4 +1,3 @@
-import { h } from 'preact'
 import { ArtAsset } from '../types'
 
 interface ArtDisplayProps {

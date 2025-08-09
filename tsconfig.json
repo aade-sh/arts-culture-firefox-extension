@@ -13,16 +13,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact",
+    "jsx": "preserve",
     "types": ["chrome"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "newtab/newtab-bundle.js"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "newtab/newtab-bundle.js"]
 }
