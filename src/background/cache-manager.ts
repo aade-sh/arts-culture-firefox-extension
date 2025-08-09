@@ -63,30 +63,27 @@ export class CacheManager {
     }
   }
 
-  async getImageCache(namespace: string): Promise<Cache> {
-    return await caches.open(`${namespace}-images`)
+  async getImageCache(namespace: ProviderName): Promise<Cache> {
+    return await ExtensionStorage.getImageCache(namespace)
   }
 
   async getCachedImage(
-    namespace: string,
+    namespace: ProviderName,
     imageUrl: string,
   ): Promise<Response | undefined> {
-    const cache = await this.getImageCache(namespace)
-    return await cache.match(imageUrl)
+    return await ExtensionStorage.getCachedImage(namespace, imageUrl)
   }
 
   async setCachedImage(
-    namespace: string,
+    namespace: ProviderName,
     imageUrl: string,
     response: Response,
-  ): Promise<Response> {
-    const cache = await this.getImageCache(namespace)
-    await cache.put(imageUrl, response.clone())
-    return response
+  ): Promise<void> {
+    await ExtensionStorage.setCachedImage(namespace, imageUrl, response)
   }
 
-  async clearImageCache(namespace: string): Promise<boolean> {
-    return await caches.delete(`${namespace}-images`)
+  async clearImageCache(namespace: ProviderName): Promise<boolean> {
+    return await ExtensionStorage.clearImageCache(namespace)
   }
 
   blobToDataUrl(blob: Blob): Promise<string> {
@@ -99,7 +96,7 @@ export class CacheManager {
   }
 
   async loadAndCacheImage(
-    namespace: string,
+    namespace: ProviderName,
     imageUrl: string,
     requestOptions: RequestInit = {},
   ): Promise<string> {
@@ -120,11 +117,8 @@ export class CacheManager {
           throw new Error(`Failed to fetch image: ${fetchResponse.status}`)
         }
 
-        cachedResponse = await this.setCachedImage(
-          namespace,
-          imageUrl,
-          fetchResponse,
-        )
+        await this.setCachedImage(namespace, imageUrl, fetchResponse)
+        cachedResponse = fetchResponse
       }
 
       const blob = await cachedResponse.blob()

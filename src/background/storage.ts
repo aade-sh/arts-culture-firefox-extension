@@ -1,4 +1,4 @@
-import { StorageKey, CacheKey } from '../types'
+import { StorageKey, CacheKey, ProviderName } from '../types'
 
 export class ExtensionStorage {
   static async writeData(
@@ -32,5 +32,30 @@ export class ExtensionStorage {
 
   static async clear(): Promise<void> {
     await chrome.storage.local.clear()
+  }
+
+  static async getImageCache(namespace: ProviderName): Promise<Cache> {
+    return await caches.open(`${namespace}-images`)
+  }
+
+  static async getCachedImage(
+    namespace: ProviderName,
+    imageUrl: string,
+  ): Promise<Response | undefined> {
+    const cache = await this.getImageCache(namespace)
+    return await cache.match(imageUrl)
+  }
+
+  static async setCachedImage(
+    namespace: ProviderName,
+    imageUrl: string,
+    response: Response,
+  ): Promise<void> {
+    const cache = await this.getImageCache(namespace)
+    await cache.put(imageUrl, response.clone())
+  }
+
+  static async clearImageCache(namespace: ProviderName): Promise<boolean> {
+    return await caches.delete(`${namespace}-images`)
   }
 }
