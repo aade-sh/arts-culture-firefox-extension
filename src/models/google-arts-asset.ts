@@ -1,4 +1,5 @@
-import { ArtAsset } from '../../types'
+import { ArtAsset } from '../types'
+import { GoogleArtsJsonData } from './json-data'
 
 export interface GoogleArtsRawData {
   id?: string
@@ -9,16 +10,6 @@ export interface GoogleArtsRawData {
   link?: string
 }
 
-export interface GoogleArtsJsonData {
-  id: string
-  title: string
-  creator: string
-  attribution: string
-  remoteImageUrl: string
-  detailsUrl: string
-  provider: string
-}
-
 export class GoogleArtsAsset implements ArtAsset {
   id: string
   title: string
@@ -26,7 +17,7 @@ export class GoogleArtsAsset implements ArtAsset {
   attribution: string
   remoteImageUrl: string
   detailsUrl: string
-  provider: string
+  provider: 'google-arts'
 
   constructor(rawData: GoogleArtsRawData) {
     this.id = rawData.id || this.generateId()

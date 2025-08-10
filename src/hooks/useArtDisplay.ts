@@ -1,11 +1,26 @@
 import { useState, useEffect, useCallback } from 'preact/hooks'
+import { GoogleArtsAsset } from '../models/google-arts-asset'
+import { MetMuseumAsset } from '../models/met-museum-asset'
+import { ArtAssetJson } from '../models/json-data'
 import { ArtAsset, UserSettings } from '../types'
+
+// Factory to reconstruct asset objects with their methods
+function artAssetFactory(assetData: ArtAssetJson): ArtAsset {
+  switch (assetData.provider) {
+    case 'google-arts':
+      return GoogleArtsAsset.fromJSON(assetData)
+    case 'met-museum':
+      return MetMuseumAsset.fromJSON(assetData)
+    default:
+      throw new Error(`Unknown art provider: ${(assetData as any).provider}`)
+  }
+}
 
 interface InitializeArtResponse {
   type: 'initializeArtResponse'
   data: {
     error?: string
-    asset?: ArtAsset
+    asset?: ArtAssetJson
     imageUrl?: string | null
     totalAssets?: number
     currentIndex?: number
@@ -15,7 +30,7 @@ interface InitializeArtResponse {
 
 interface ArtUpdatedMessage {
   type: 'artUpdated'
-  asset: ArtAsset
+  asset: ArtAssetJson
   imageUrl: string | null
   totalAssets: number
   currentIndex: number
@@ -98,9 +113,13 @@ export function useArtDisplay() {
             loading: false,
           }))
         } else {
+          const asset = message.data.asset
+            ? artAssetFactory(message.data.asset)
+            : null
+
           setState((prev) => ({
             ...prev,
-            currentAsset: message.data.asset || null,
+            currentAsset: asset,
             imageUrl: message.data.imageUrl || null,
             totalAssets: message.data.totalAssets || 0,
             currentIndex: message.data.currentIndex || 0,
@@ -110,9 +129,10 @@ export function useArtDisplay() {
           }))
         }
       } else if (message.type === 'artUpdated') {
+        const asset = artAssetFactory(message.asset)
         setState((prev) => ({
           ...prev,
-          currentAsset: message.asset,
+          currentAsset: asset,
           imageUrl: message.imageUrl,
           totalAssets: message.totalAssets,
           currentIndex: message.currentIndex,

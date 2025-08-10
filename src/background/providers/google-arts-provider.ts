@@ -1,9 +1,9 @@
 import { ArtProvider } from './art-provider-base'
 import {
   GoogleArtsAsset,
-  GoogleArtsJsonData,
   GoogleArtsRawData,
-} from '../models/google-arts-asset'
+} from '../../models/google-arts-asset'
+import { GoogleArtsJsonData } from '../../models/json-data'
 import { ArtAsset, PROVIDERS } from '../../types'
 
 export class GoogleArtsProvider extends ArtProvider {

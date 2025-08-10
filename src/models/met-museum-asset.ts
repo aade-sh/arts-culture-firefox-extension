@@ -1,4 +1,5 @@
-import { ArtAsset } from '../../types'
+import { ArtAsset } from '../types'
+import { MetMuseumJsonData } from './json-data'
 
 interface MetMuseumRawData {
   objectID?: number
@@ -15,16 +16,6 @@ interface MetMuseumRawData {
   isPublicDomain?: boolean
 }
 
-interface MetMuseumJsonData {
-  id: string
-  title: string
-  creator: string
-  attribution: string
-  remoteImageUrl: string
-  detailsUrl: string
-  provider: string
-}
-
 export class MetMuseumAsset implements ArtAsset {
   id: string
   title: string
@@ -32,7 +23,7 @@ export class MetMuseumAsset implements ArtAsset {
   attribution: string
   remoteImageUrl: string
   detailsUrl: string
-  provider: string
+  provider: 'met-museum'
 
   constructor(rawData: MetMuseumRawData) {
     this.id = rawData.objectID?.toString() || this.generateId()

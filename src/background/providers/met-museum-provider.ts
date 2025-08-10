@@ -1,5 +1,5 @@
 import { ArtProvider } from './art-provider-base'
-import { MetMuseumAsset } from '../models/met-museum-asset'
+import { MetMuseumAsset } from '../../models/met-museum-asset'
 import { ArtAsset, PROVIDERS } from '../../types'
 
 export class MetMuseumProvider extends ArtProvider {
