@@ -1,12 +1,17 @@
 import { StorageKey, CacheKey, ProviderName } from '../types'
 
+// Type declaration for Firefox's browser API
+declare const browser: typeof chrome | undefined
+
 export class ExtensionStorage {
   static async writeData(
     key: StorageKey | CacheKey,
     data: string,
   ): Promise<void> {
     try {
-      await chrome.storage.local.set({ [key]: data })
+      // Use browser.storage if available (Firefox), fallback to chrome.storage
+      const storage = typeof browser !== 'undefined' ? browser.storage : chrome.storage
+      await storage.local.set({ [key]: data })
     } catch (error) {
       console.error(`Error writing storage key ${key}:`, error)
       throw error
@@ -15,7 +20,9 @@ export class ExtensionStorage {
 
   static async readData(key: StorageKey | CacheKey): Promise<string | null> {
     try {
-      const result = await chrome.storage.local.get([key])
+      // Use browser.storage if available (Firefox), fallback to chrome.storage
+      const storage = typeof browser !== 'undefined' ? browser.storage : chrome.storage
+      const result = await storage.local.get([key])
 
       return result && typeof result === 'object' && result[key] !== undefined
         ? result[key]
@@ -27,11 +34,13 @@ export class ExtensionStorage {
   }
 
   static async removeData(key: StorageKey | CacheKey): Promise<void> {
-    await chrome.storage.local.remove(key)
+    const storage = typeof browser !== 'undefined' ? browser.storage : chrome.storage
+    await storage.local.remove(key)
   }
 
   static async clear(): Promise<void> {
-    await chrome.storage.local.clear()
+    const storage = typeof browser !== 'undefined' ? browser.storage : chrome.storage
+    await storage.local.clear()
   }
 
   static async getImageCache(namespace: ProviderName): Promise<Cache> {
