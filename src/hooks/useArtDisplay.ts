@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'preact/hooks'
 import { ArtAsset, UserSettings } from '../types'
 
-interface GetCurrentArtResponse {
-  type: 'getCurrentArtResponse'
+interface InitializeArtResponse {
+  type: 'initializeArtResponse'
   data: {
     error?: string
     asset?: ArtAsset
@@ -22,7 +22,7 @@ interface ArtUpdatedMessage {
   userSettings: UserSettings
 }
 
-type RuntimeMessage = GetCurrentArtResponse | ArtUpdatedMessage
+type RuntimeMessage = InitializeArtResponse | ArtUpdatedMessage
 
 interface ArtState {
   currentAsset: ArtAsset | null
@@ -45,18 +45,18 @@ export function useArtDisplay() {
     userSettings: {},
   })
 
-  const refreshArt = useCallback(async () => {
+  const initializeArt = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
-      await chrome.runtime.sendMessage({ type: 'getCurrentArt' })
+      await chrome.runtime.sendMessage({ type: 'initializeArt' })
     } catch (error) {
       console.error(
-        'Error sending message to event listeners while getting current art',
+        'Error sending message to event listeners while initializing art',
       )
       setState((prev) => ({
         ...prev,
-        error: 'Failed to load art',
+        error: 'Failed to initialize art',
         loading: false,
       }))
     }
@@ -90,7 +90,7 @@ export function useArtDisplay() {
   // Listen for updates from background
   useEffect(() => {
     const listener = (message: RuntimeMessage) => {
-      if (message.type === 'getCurrentArtResponse') {
+      if (message.type === 'initializeArtResponse') {
         if (message.data.error) {
           setState((prev) => ({
             ...prev,
@@ -124,15 +124,15 @@ export function useArtDisplay() {
     }
 
     chrome.runtime.onMessage.addListener(listener)
-    refreshArt() // Initial load
+    initializeArt() // Initial load
 
     return () => chrome.runtime.onMessage.removeListener(listener)
-  }, [refreshArt])
+  }, [initializeArt])
 
   return {
     ...state,
     rotateToNext,
     switchProvider,
-    refreshArt,
+    initializeArt,
   }
 }

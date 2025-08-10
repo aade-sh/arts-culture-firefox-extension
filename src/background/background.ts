@@ -6,7 +6,7 @@ interface ExtensionMessage {
   provider?: ProviderName
 }
 
-type GetCurrentArtResponse =
+type InitializeArtResponse =
   | { error: string }
   | {
       asset: ArtAsset
@@ -17,7 +17,7 @@ type GetCurrentArtResponse =
     }
 
 const ExtMessageType = {
-  GET_CURRENT_ART: 'getCurrentArt',
+  INITIALIZE_ART: 'initializeArt',
   ROTATE_TO_NEXT: 'rotateToNext',
   SWITCH_PROVIDER: 'switchProvider',
   ART_UPDATED: 'artUpdated',
@@ -56,32 +56,22 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 })
 
-chrome.browserAction.onClicked.addListener((tab) => {
-  const siteUrl =
-    'https://artsandculture.google.com?utm_source=firefox_extension&utm_medium=default_link&utm_campaign=firefox_extension'
-  chrome.tabs.create({
-    active: true,
-    openerTabId: tab.id,
-    url: siteUrl,
-  })
-})
-
 chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, sender, sendResponse) => {
-    if (message.type === ExtMessageType.GET_CURRENT_ART) {
+    if (message.type === ExtMessageType.INITIALIZE_ART) {
       const tabId = sender.tab?.id
       if (tabId) {
-        handleGetCurrentArtAsync()
+        handleInitializeArtAsync()
           .then((response) => {
             chrome.tabs.sendMessage(tabId, {
-              type: 'getCurrentArtResponse',
+              type: 'initializeArtResponse',
               data: response,
             })
           })
           .catch((error) => {
-            console.error('Error getting art:', error)
+            console.error('Error initializing art:', error)
             chrome.tabs.sendMessage(tabId, {
-              type: 'getCurrentArtResponse',
+              type: 'initializeArtResponse',
               data: { error: 'Failed to load artwork: ' + error.message },
             })
           })
@@ -106,7 +96,7 @@ chrome.runtime.onMessage.addListener(
   },
 )
 
-async function handleGetCurrentArtAsync(): Promise<GetCurrentArtResponse> {
+async function handleInitializeArtAsync(): Promise<InitializeArtResponse> {
   const syncSuccess = await ArtManager.syncData()
   if (!syncSuccess) {
     return { error: 'Failed to sync art data' }
