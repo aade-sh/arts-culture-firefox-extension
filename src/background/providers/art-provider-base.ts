@@ -47,6 +47,8 @@ export abstract class ArtProvider implements IArtProvider {
       if (!asset) return false
 
       const imageUrl = asset.getProcessedImageUrl()
+      if (!imageUrl) return false
+
       await this.cache.loadAndCacheImage(this.name, imageUrl)
 
       return true

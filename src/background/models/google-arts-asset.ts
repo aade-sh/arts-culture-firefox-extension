@@ -65,6 +65,7 @@ export class GoogleArtsAsset implements ArtAsset {
   }
 
   getProcessedImageUrl(): string {
+    if (!this.remoteImageUrl) return ''
     return this.remoteImageUrl + '=s1920-rw'
   }
 
@@ -72,7 +73,7 @@ export class GoogleArtsAsset implements ArtAsset {
     return `https://artsandculture.google.com/asset/${this.detailsUrl}`
   }
 
-  toJSON(): object {
+  toJSON(): GoogleArtsJsonData {
     return {
       id: this.id,
       title: this.title,
@@ -85,7 +86,16 @@ export class GoogleArtsAsset implements ArtAsset {
   }
 
   static fromJSON(json: GoogleArtsJsonData): GoogleArtsAsset {
-    return new GoogleArtsAsset(json)
+    // Convert from JSON format back to the format expected by constructor
+    const asset = new GoogleArtsAsset({
+      id: json.id,
+      title: json.title,
+      creator: json.creator,
+      attribution: json.attribution,
+      image: json.remoteImageUrl,  // Map remoteImageUrl back to image field
+      link: json.detailsUrl        // Map detailsUrl back to link field
+    })
+    return asset
   }
 
   isValid(): boolean {
