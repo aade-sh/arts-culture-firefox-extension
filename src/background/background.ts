@@ -112,6 +112,15 @@ async function handleInitializeArtAsync(): Promise<InitializeArtResponse> {
 
   let asset = await ArtManager.getAsset(currentBackgroundAssetIndex)
 
+  const ONE_DAY = 24 * 60 * 60 * 1000
+  const lastUpdated = await ArtManager.getLastUpdated()
+
+  const shouldRotate = Date.now() - lastUpdated > ONE_DAY ? true : false
+
+  if (asset && shouldRotate) {
+    await handleRotateToNext()
+  }
+
   if (!asset) {
     const validIndex = await findNextValidAsset(
       currentBackgroundAssetIndex,

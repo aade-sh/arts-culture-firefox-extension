@@ -124,6 +124,10 @@ export class ArtManager implements IArtManager {
     return this.state.currentIndex
   }
 
+  async getLastUpdated(): Promise<number> {
+    return this.state.lastUpdated
+  }
+
   async setCurrentIndex(index: number): Promise<void> {
     this.state.currentIndex = index
     await this.saveState()
