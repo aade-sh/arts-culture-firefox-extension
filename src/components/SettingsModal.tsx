@@ -1,11 +1,12 @@
-import { UserSettings, DEFAULT_PROVIDER } from '../types'
+import { UserSettings, DEFAULT_PROVIDER, ProviderName } from '../types'
 import { TargetedEvent } from 'preact/compat'
 
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
   userSettings: UserSettings
-  onProviderChange: (provider: string) => Promise<void>
+  onProviderChange: (provider: ProviderName) => Promise<void>
+  onTurnoverAlwaysChange: (enabled: boolean) => Promise<void>
 }
 
 export function SettingsModal({
@@ -13,14 +14,22 @@ export function SettingsModal({
   onClose,
   userSettings,
   onProviderChange,
+  onTurnoverAlwaysChange,
 }: SettingsModalProps) {
   if (!isOpen) return null
 
   const handleProviderChange = async (
     e: TargetedEvent<HTMLSelectElement, Event>,
   ) => {
-    const newProvider = e.currentTarget.value
+    const newProvider = e.currentTarget.value as ProviderName
     await onProviderChange(newProvider)
+  }
+
+  const handleTurnoverAlwaysChange = async (
+    e: TargetedEvent<HTMLInputElement, Event>,
+  ) => {
+    const enabled = e.currentTarget.checked
+    await onTurnoverAlwaysChange(enabled)
   }
 
   return (
@@ -43,6 +52,17 @@ export function SettingsModal({
               <option value="google-arts">Google Arts & Culture</option>
               <option value="met-museum">Metropolitan Museum of Art</option>
             </select>
+          </div>
+          <div className="setting-item">
+            <label htmlFor="turnover-always">
+              Refresh artwork on every new tab
+            </label>
+            <input
+              id="turnover-always"
+              type="checkbox"
+              checked={Boolean(userSettings?.TURNOVER_ALWAYS)}
+              onChange={handleTurnoverAlwaysChange}
+            />
           </div>
         </div>
       </div>

@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback } from 'preact/hooks'
 import { GoogleArtsAsset } from '../models/google-arts-asset'
 import { MetMuseumAsset } from '../models/met-museum-asset'
 import { ArtAssetJson } from '../models/json-data'
-import { ArtAsset, UserSettings } from '../types'
+import {
+  ArtAsset,
+  ExtensionMessage,
+  ProviderName,
+  UserSettings,
+} from '../types'
 
 // Factory to reconstruct asset objects with their methods
 function artAssetFactory(assetData: ArtAssetJson): ArtAsset {
@@ -37,7 +42,15 @@ interface ArtUpdatedMessage {
   userSettings: UserSettings
 }
 
-type RuntimeMessage = InitializeArtResponse | ArtUpdatedMessage
+interface SettingsUpdatedMessage {
+  type: 'settingsUpdated'
+  userSettings: UserSettings
+}
+
+type RuntimeMessage =
+  | InitializeArtResponse
+  | ArtUpdatedMessage
+  | SettingsUpdatedMessage
 
 interface ArtState {
   currentAsset: ArtAsset | null
@@ -64,7 +77,8 @@ export function useArtDisplay() {
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
-      await chrome.runtime.sendMessage({ type: 'initializeArt' })
+      const message: ExtensionMessage = { type: 'initializeArt' }
+      await chrome.runtime.sendMessage(message)
     } catch (error) {
       console.error(
         'Error sending message to event listeners while initializing art',
@@ -79,16 +93,21 @@ export function useArtDisplay() {
 
   const rotateToNext = useCallback(async () => {
     try {
-      chrome.runtime.sendMessage({ type: 'rotateToNext' })
+      const message: ExtensionMessage = { type: 'rotateToNext' }
+      chrome.runtime.sendMessage(message)
     } catch (error) {
       console.error('Error sending message to event listeners whicle rotating')
     }
   }, [])
 
-  const switchProvider = useCallback(async (provider: string) => {
+  const switchProvider = useCallback(async (provider: ProviderName) => {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }))
-      await chrome.runtime.sendMessage({ type: 'switchProvider', provider })
+      const message: ExtensionMessage = {
+        type: 'switchProvider',
+        provider,
+      }
+      await chrome.runtime.sendMessage(message)
     } catch (error) {
       console.error(
         'Error sending message to event listeners whicle switching providers',
@@ -101,6 +120,40 @@ export function useArtDisplay() {
       }))
     }
   }, [])
+
+  const setTurnoverAlways = useCallback(
+    async (enabled: boolean) => {
+      const previousValue = state.userSettings.TURNOVER_ALWAYS
+
+      setState((prev) => ({
+        ...prev,
+        userSettings: {
+          ...prev.userSettings,
+          TURNOVER_ALWAYS: enabled,
+        },
+      }))
+
+      try {
+        const message: ExtensionMessage = {
+          type: 'setTurnoverAlways',
+          turnoverAlwaysEnabled: enabled,
+        }
+        await chrome.runtime.sendMessage(message)
+      } catch (error) {
+        console.error(
+          'Error sending message to event listeners while setting turnoverAlways',
+        )
+        setState((prev) => ({
+          ...prev,
+          userSettings: {
+            ...prev.userSettings,
+            TURNOVER_ALWAYS: previousValue,
+          },
+        }))
+      }
+    },
+    [state.userSettings.TURNOVER_ALWAYS],
+  )
 
   // Listen for updates from background
   useEffect(() => {
@@ -140,6 +193,14 @@ export function useArtDisplay() {
           loading: false,
           error: null,
         }))
+      } else if (message.type === 'settingsUpdated') {
+        setState((prev) => ({
+          ...prev,
+          userSettings: {
+            ...prev.userSettings,
+            ...message.userSettings,
+          },
+        }))
       }
     }
 
@@ -153,6 +214,7 @@ export function useArtDisplay() {
     ...state,
     rotateToNext,
     switchProvider,
+    setTurnoverAlways,
     initializeArt,
   }
 }

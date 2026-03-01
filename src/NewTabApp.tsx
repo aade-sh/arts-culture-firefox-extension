@@ -4,6 +4,7 @@ import { LoadingSpinner } from './components/LoadingSpinner'
 import { ErrorDisplay } from './components/ErrorDisplay'
 import { ArtDisplay } from './components/ArtDisplay'
 import { SettingsModal } from './components/SettingsModal'
+import { ProviderName } from './types'
 
 export function NewTabApp() {
   const [showSettings, setShowSettings] = useState(false)
@@ -15,9 +16,10 @@ export function NewTabApp() {
     userSettings,
     rotateToNext,
     switchProvider,
+    setTurnoverAlways,
   } = useArtDisplay()
 
-  const handleProviderChange = async (provider: string) => {
+  const handleProviderChange = async (provider: ProviderName) => {
     try {
       await switchProvider(provider)
     } finally {
@@ -29,6 +31,10 @@ export function NewTabApp() {
     if (currentAsset?.getDetailsUrl) {
       chrome.tabs.create({ url: currentAsset.getDetailsUrl() })
     }
+  }
+
+  const handleTurnoverAlwaysChange = async (enabled: boolean) => {
+    await setTurnoverAlways(enabled)
   }
 
   // Show full loading screen only if no image exists yet
@@ -56,6 +62,7 @@ export function NewTabApp() {
         onClose={() => setShowSettings(false)}
         userSettings={userSettings}
         onProviderChange={handleProviderChange}
+        onTurnoverAlwaysChange={handleTurnoverAlwaysChange}
       />
     </>
   )

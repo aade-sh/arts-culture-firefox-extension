@@ -62,14 +62,11 @@ export interface ArtState {
   error: string | null
 }
 
-export interface ExtensionMessage {
-  type: string
-  payload?: {
-    currentAssetIndex?: number
-    newAssetIndex?: number
-    setting?: UserSettingUpdate
-  }
-}
+export type ExtensionMessage =
+  | { type: 'initializeArt' }
+  | { type: 'rotateToNext' }
+  | { type: 'switchProvider'; provider: ProviderName }
+  | { type: 'setTurnoverAlways'; turnoverAlwaysEnabled: boolean }
 
 export interface ArtProvider {
   name: ProviderName
