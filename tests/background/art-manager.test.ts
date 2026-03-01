@@ -28,12 +28,46 @@ class FakeMetProvider {
   getDetailsUrl = vi.fn().mockReturnValue('https://example.com/detail')
 }
 
+class FakeClevelandProvider {
+  name = PROVIDERS.CLEVELAND_MUSEUM
+  displayName = 'Cleveland Museum of Art'
+
+  syncData = vi.fn().mockResolvedValue(true)
+  getAsset = vi.fn().mockResolvedValue(null)
+  loadImage = vi.fn().mockResolvedValue(true)
+  syncedAssetCount = vi.fn().mockResolvedValue(5)
+  findNextValidAssetIndex = vi.fn().mockResolvedValue(0)
+  getDisplayImageUrl = vi.fn().mockResolvedValue('data:image/mock')
+  getDetailsUrl = vi.fn().mockReturnValue('https://example.com/detail')
+}
+
+class FakeRijksProvider {
+  name = PROVIDERS.RIJKSMUSEUM
+  displayName = 'Rijksmuseum'
+
+  syncData = vi.fn().mockResolvedValue(true)
+  getAsset = vi.fn().mockResolvedValue(null)
+  loadImage = vi.fn().mockResolvedValue(true)
+  syncedAssetCount = vi.fn().mockResolvedValue(5)
+  findNextValidAssetIndex = vi.fn().mockResolvedValue(0)
+  getDisplayImageUrl = vi.fn().mockResolvedValue('data:image/mock')
+  getDetailsUrl = vi.fn().mockReturnValue('https://example.com/detail')
+}
+
 vi.mock('../../src/background/providers/google-arts-provider', () => ({
   GoogleArtsProvider: FakeGoogleProvider,
 }))
 
 vi.mock('../../src/background/providers/met-museum-provider', () => ({
   MetMuseumProvider: FakeMetProvider,
+}))
+
+vi.mock('../../src/background/providers/cleveland-museum-provider', () => ({
+  ClevelandMuseumProvider: FakeClevelandProvider,
+}))
+
+vi.mock('../../src/background/providers/rijksmuseum-provider', () => ({
+  RijksmuseumProvider: FakeRijksProvider,
 }))
 
 describe('ArtManager', () => {

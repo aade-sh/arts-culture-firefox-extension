@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Arts and Culture New Tab",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Transform your new tab into a gallery of amazing artworks from Google Arts & Culture, Metropolitan Museum, and other world-class museums",
   "permissions": [
     "storage",
@@ -9,7 +9,12 @@
     "https://www.gstatic.com/*",
     "https://*.ggpht.com/*",
     "https://collectionapi.metmuseum.org/*",
-    "https://images.metmuseum.org/*"
+    "https://images.metmuseum.org/*",
+    "https://openaccess-api.clevelandart.org/*",
+    "https://openaccess-cdn.clevelandart.org/*",
+    "https://data.rijksmuseum.nl/*",
+    "https://id.rijksmuseum.nl/*",
+    "https://iiif.micr.io/*"
   ],
   "background": {
     "scripts": [

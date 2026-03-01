@@ -1,4 +1,10 @@
-import { UserSettings, DEFAULT_PROVIDER, ProviderName } from '../types'
+import {
+  UserSettings,
+  DEFAULT_PROVIDER,
+  ProviderName,
+  PROVIDER_LABELS,
+  ENABLED_PROVIDER_NAMES,
+} from '../types'
 import { TargetedEvent } from 'preact/compat'
 
 interface SettingsModalProps {
@@ -17,6 +23,11 @@ export function SettingsModal({
   onTurnoverAlwaysChange,
 }: SettingsModalProps) {
   if (!isOpen) return null
+
+  const providerOptions = ENABLED_PROVIDER_NAMES.map((providerName) => [
+    providerName,
+    PROVIDER_LABELS[providerName],
+  ] as const)
 
   const handleProviderChange = async (
     e: TargetedEvent<HTMLSelectElement, Event>,
@@ -49,8 +60,11 @@ export function SettingsModal({
               value={userSettings?.ART_PROVIDER || DEFAULT_PROVIDER}
               onChange={handleProviderChange}
             >
-              <option value="google-arts">Google Arts & Culture</option>
-              <option value="met-museum">Metropolitan Museum of Art</option>
+              {providerOptions.map(([providerName, providerLabel]) => (
+                <option key={providerName} value={providerName}>
+                  {providerLabel}
+                </option>
+              ))}
             </select>
           </div>
           <div className="setting-item">

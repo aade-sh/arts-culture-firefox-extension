@@ -1,6 +1,6 @@
 # Arts and Culture New Tab - Firefox Extension
 
-Firefox extension that transforms your new tab into a curated art gallery featuring works from Google Arts & Culture and Metropolitan Museum.
+Firefox extension that transforms your new tab into a curated art gallery featuring works from multiple museum/open-art sources.
 
 Inspired by [Google Arts and Culture extension](https://chromewebstore.google.com/detail/google-arts-culture/akimgimeeoiognljlfchpbkpfbmeapkh?hl=en)
 
@@ -75,8 +75,10 @@ The build process uses:
 │   │   ├── storage.ts           # Browser storage/cache API wrapper
 │   │   └── providers/
 │   │       ├── art-provider-base.ts
+│   │       ├── cleveland-museum-provider.ts
 │   │       ├── google-arts-provider.ts
-│   │       └── met-museum-provider.ts
+│   │       ├── met-museum-provider.ts
+│   │       └── rijksmuseum-provider.ts
 │   ├── components/
 │   ├── hooks/
 │   ├── models/
@@ -110,10 +112,10 @@ flowchart TD
     BG["background.ts<br/>message router"]
     SERVICE["ArtService<br/>use-case orchestration"]
     MANAGER["ArtManager<br/>state + provider delegation"]
-    PROVIDER["ArtProvider<br/>GoogleArtsProvider / MetMuseumProvider"]
+    PROVIDER["ArtProvider<br/>GoogleArts / Met / Cleveland / Rijks"]
     CACHE["CacheManager"]
     STORAGE["ExtensionStorage<br/>chrome.storage + Cache API"]
-    API["External APIs<br/>Google Arts / Met Museum"]
+    API["External APIs<br/>Google Arts / Met / Cleveland / Rijks"]
 
     UI -- "initializeArt / rotateToNext / switchProvider / setTurnoverAlways" --> BG
     BG --> SERVICE

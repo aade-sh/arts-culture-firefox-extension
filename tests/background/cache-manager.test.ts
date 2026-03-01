@@ -78,7 +78,9 @@ describe('CacheManager', () => {
       .mockResolvedValue('data:image/mock')
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
-    const response = new Response(new Blob(['cached']))
+    const response = new Response(new Blob(['cached'], { type: 'image/jpeg' }), {
+      headers: { 'Content-Type': 'image/jpeg' },
+    })
     const getCachedImage = vi
       .spyOn(cache, 'getCachedImage')
       .mockResolvedValue(response)
@@ -105,7 +107,12 @@ describe('CacheManager', () => {
 
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response(new Blob(['fetched']), { status: 200 }))
+      .mockResolvedValue(
+        new Response(new Blob(['fetched'], { type: 'image/jpeg' }), {
+          status: 200,
+          headers: { 'Content-Type': 'image/jpeg' },
+        }),
+      )
 
     const result = await cache.loadAndCacheImage(
       PROVIDERS.GOOGLE_ARTS,
@@ -119,5 +126,19 @@ describe('CacheManager', () => {
     expect(setCachedImage).toHaveBeenCalled()
     expect(result).toBe('data:image/fetched')
     expect(blobToDataUrl).toHaveBeenCalled()
+  })
+
+  it('rejects non-image responses', async () => {
+    vi.spyOn(cache, 'getCachedImage').mockResolvedValue(undefined)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html>challenge</html>', {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    )
+
+    await expect(
+      cache.loadAndCacheImage(PROVIDERS.GOOGLE_ARTS, 'https://img.example/bad'),
+    ).rejects.toThrow(/non-image content-type/)
   })
 })

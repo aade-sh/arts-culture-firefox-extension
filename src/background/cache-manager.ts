@@ -86,6 +86,11 @@ export class CacheManager {
     return await ExtensionStorage.clearImageCache(namespace)
   }
 
+  private isImageResponse(response: Response): boolean {
+    const contentType = response.headers.get('content-type') || ''
+    return contentType.startsWith('image/')
+  }
+
   blobToDataUrl(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -107,6 +112,11 @@ export class CacheManager {
 
     try {
       let cachedResponse = await this.getCachedImage(namespace, imageUrl)
+      if (cachedResponse && !this.isImageResponse(cachedResponse)) {
+        const cache = await this.getImageCache(namespace)
+        await cache.delete(imageUrl)
+        cachedResponse = undefined
+      }
 
       if (!cachedResponse) {
         const fetchResponse = await fetch(imageUrl, {
@@ -115,6 +125,12 @@ export class CacheManager {
         })
         if (!fetchResponse.ok) {
           throw new Error(`Failed to fetch image: ${fetchResponse.status}`)
+        }
+        if (!this.isImageResponse(fetchResponse)) {
+          const contentType = fetchResponse.headers.get('content-type') || 'unknown'
+          throw new Error(
+            `Failed to fetch image: non-image content-type (${contentType})`,
+          )
         }
 
         await this.setCachedImage(namespace, imageUrl, fetchResponse)

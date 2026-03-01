@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'preact/hooks'
 import { GoogleArtsAsset } from '../models/google-arts-asset'
 import { MetMuseumAsset } from '../models/met-museum-asset'
+import { ClevelandArtAsset } from '../models/cleveland-art-asset'
+import { RijksmuseumAsset } from '../models/rijksmuseum-asset'
 import { ArtAssetJson } from '../models/json-data'
 import {
   ArtAsset,
@@ -20,6 +22,10 @@ function artAssetFactory(assetData: ArtAssetJson): ArtAsset {
       return GoogleArtsAsset.fromJSON(assetData)
     case 'met-museum':
       return MetMuseumAsset.fromJSON(assetData)
+    case 'cleveland-museum':
+      return ClevelandArtAsset.fromJSON(assetData)
+    case 'rijksmuseum':
+      return RijksmuseumAsset.fromJSON(assetData)
     default:
       throw new Error(`Unknown art provider: ${(assetData as any).provider}`)
   }

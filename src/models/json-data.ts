@@ -18,4 +18,28 @@ export interface MetMuseumJsonData {
   provider: 'met-museum'
 }
 
-export type ArtAssetJson = GoogleArtsJsonData | MetMuseumJsonData
+export interface ClevelandArtJsonData {
+  id: string
+  title: string
+  creator: string
+  attribution: string
+  remoteImageUrl: string
+  detailsUrl: string
+  provider: 'cleveland-museum'
+}
+
+export interface RijksmuseumJsonData {
+  id: string
+  title: string
+  creator: string
+  attribution: string
+  remoteImageUrl: string
+  detailsUrl: string
+  provider: 'rijksmuseum'
+}
+
+export type ArtAssetJson =
+  | GoogleArtsJsonData
+  | MetMuseumJsonData
+  | ClevelandArtJsonData
+  | RijksmuseumJsonData

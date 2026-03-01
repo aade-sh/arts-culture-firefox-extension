@@ -21,11 +21,27 @@ export const createCacheKey = (provider: ProviderName, type: CacheKeyType): Cach
 export const PROVIDERS = {
   GOOGLE_ARTS: 'google-arts',
   MET_MUSEUM: 'met-museum',
+  CLEVELAND_MUSEUM: 'cleveland-museum',
+  RIJKSMUSEUM: 'rijksmuseum',
 } as const
 
 export type ProviderName = typeof PROVIDERS[keyof typeof PROVIDERS]
 
 export const DEFAULT_PROVIDER: ProviderName = PROVIDERS.GOOGLE_ARTS
+
+export const PROVIDER_LABELS: Record<ProviderName, string> = {
+  [PROVIDERS.GOOGLE_ARTS]: 'Google Arts & Culture',
+  [PROVIDERS.MET_MUSEUM]: 'Metropolitan Museum of Art',
+  [PROVIDERS.CLEVELAND_MUSEUM]: 'Cleveland Museum of Art',
+  [PROVIDERS.RIJKSMUSEUM]: 'Rijksmuseum',
+}
+
+export const ENABLED_PROVIDER_NAMES: ProviderName[] = [
+  PROVIDERS.GOOGLE_ARTS,
+  PROVIDERS.MET_MUSEUM,
+  PROVIDERS.CLEVELAND_MUSEUM,
+  PROVIDERS.RIJKSMUSEUM,
+]
 
 export interface ArtAsset {
   id: string
