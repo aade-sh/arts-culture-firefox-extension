@@ -34,6 +34,8 @@ dist/
 build/
 *.min.js
 *.min.css
+newtab/newtab-bundle.js
+dist/background.js
 
 # Logs
 logs/
@@ -49,6 +51,7 @@ logs/
 # Cache
 .cache/
 *.cache
+coverage/
 
 # Extension store assets (keep source icons)
 # Add actual icon files as needed

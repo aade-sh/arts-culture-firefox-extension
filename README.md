@@ -44,6 +44,9 @@ pnpm run build           # Build both newtab and background scripts
 pnpm run build:newtab    # Build only the newtab component
 pnpm run build:background # Build only the background script
 pnpm run dev             # Build and watch for changes
+pnpm run test            # Run test suite
+pnpm run test:watch      # Run tests in watch mode
+pnpm run test:coverage   # Run tests with coverage
 pnpm run clean           # Clean build artifacts
 ```
 
