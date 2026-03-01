@@ -5,14 +5,15 @@ import {
 } from '../../models/google-arts-asset'
 import { GoogleArtsJsonData } from '../../models/json-data'
 import { ArtAsset, PROVIDERS } from '../../types'
+import { CacheManager } from '../cache-manager'
 
 export class GoogleArtsProvider extends ArtProvider {
   private _syncedAssetData: GoogleArtsAsset[] = []
   private readonly JSON_DATA_URL =
     'https://www.gstatic.com/culturalinstitute/tabext/imax_2_2.json'
 
-  constructor() {
-    super(PROVIDERS.GOOGLE_ARTS, 'Google Arts & Culture')
+  constructor(cache: CacheManager) {
+    super(PROVIDERS.GOOGLE_ARTS, 'Google Arts & Culture', cache)
   }
 
   async syncData(): Promise<boolean> {
@@ -60,6 +61,16 @@ export class GoogleArtsProvider extends ArtProvider {
       await this.syncData()
     }
     return this._syncedAssetData.length
+  }
+
+  async findNextValidAssetIndex(
+    startIndex: number,
+    totalAssets: number,
+  ): Promise<number> {
+    if (totalAssets <= 0) {
+      return -1
+    }
+    return startIndex
   }
 
   async getAsset(index: number): Promise<ArtAsset | null> {

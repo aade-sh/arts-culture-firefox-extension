@@ -1,6 +1,7 @@
 import { ArtProvider } from './art-provider-base'
 import { MetMuseumAsset } from '../../models/met-museum-asset'
 import { ArtAsset, PROVIDERS } from '../../types'
+import { CacheManager } from '../cache-manager'
 
 export class MetMuseumProvider extends ArtProvider {
   private _syncedAssetData: (MetMuseumAsset | null)[] = []
@@ -9,8 +10,8 @@ export class MetMuseumProvider extends ArtProvider {
     'https://collectionapi.metmuseum.org/public/collection/v1'
   private isSyncing = false
 
-  constructor() {
-    super(PROVIDERS.MET_MUSEUM, 'Metropolitan Museum of Art')
+  constructor(cache: CacheManager) {
+    super(PROVIDERS.MET_MUSEUM, 'Metropolitan Museum of Art', cache)
   }
 
   async syncData(): Promise<boolean> {

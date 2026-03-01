@@ -129,5 +129,3 @@ export class CacheManager {
     }
   }
 }
-
-export const Cache = new CacheManager()

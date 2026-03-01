@@ -64,49 +64,76 @@ The build process uses:
 ## Project Structure
 
 ```
-├── manifest.json          # Extension configuration
-├── src/                   # Source code
-│   ├── background/        # Background scripts (TypeScript)
-│   │   ├── background.ts  # Main background script
-│   │   ├── art-manager.ts # Art data management
-│   │   └── providers/     # Art provider integrations
-│   ├── components/        # Preact/React components
-│   ├── hooks/            # Custom React hooks
-│   ├── types/            # TypeScript type definitions
-│   └── newtab.tsx        # New tab page entry point
-├── newtab/               # New tab page assets
-│   ├── newtab.html       # HTML template
-│   ├── newtab.css        # Styles
-│   └── newtab-bundle.js  # Generated bundle
-├── dist/                 # Build output
-│   └── background.js     # Generated background script
-├── icons/                # Extension icons
-├── vite.config.ts        # Vite build configuration
-└── tsconfig.json         # TypeScript configuration
+├── manifest.json
+├── src/
+│   ├── background/
+│   │   ├── background.ts        # Runtime message router/adapter
+│   │   ├── container.ts         # Composition root (wires dependencies)
+│   │   ├── art-service.ts       # Background orchestration/use-cases
+│   │   ├── art-manager.ts       # State + provider delegation
+│   │   ├── cache-manager.ts     # Metadata + image cache abstraction
+│   │   ├── storage.ts           # Browser storage/cache API wrapper
+│   │   └── providers/
+│   │       ├── art-provider-base.ts
+│   │       ├── google-arts-provider.ts
+│   │       └── met-museum-provider.ts
+│   ├── components/
+│   ├── hooks/
+│   ├── models/
+│   ├── types/
+│   │   ├── index.ts             # Domain types/interfaces
+│   │   └── runtime-messages.ts  # Shared UI/background message contracts
+│   └── newtab.tsx
+├── tests/
+├── newtab/
+├── dist/
+└── icons/
 ```
 
 ## Architecture
 
 ### Core Design
 
-**Single Manager Pattern**: `ArtManager` coordinates all art operations through a unified interface.
+The extension uses a layered background architecture with explicit dependency wiring:
 
-### Components
+- `background.ts` is the transport adapter (Chrome runtime events/messages).
+- `art-service.ts` owns orchestration logic (initialize, rotate, switch provider, toggle settings).
+- `art-manager.ts` owns persisted/runtime state and delegates content operations to providers.
+- Providers encapsulate source-specific fetch/sync/asset-validation behavior.
+- `runtime-messages.ts` is the shared typed message contract between UI and background.
 
-- **ArtManager** (`src/background/art-manager.ts`) - Central coordinator for providers and state management
-- **Providers** - Pluggable art data sources:
-  - **Interface**: `ArtProvider` contract defines common operations
-  - **Base Class**: `ArtProviderBase` provides shared functionality for caching and HTTP requests
-  - **Implementations**: `GoogleArtsProvider`, `MetMuseumProvider`
-- **Storage Layer** (`src/background/storage.ts`) - Unified storage abstraction
-- **Cache Manager** (`src/background/cache-manager.ts`) - Handles data and image caching with TTL
+### High-Level Design (HLD)
+
+```mermaid
+flowchart TD
+    UI["New Tab UI<br/>useArtDisplay + components"]
+    BG["background.ts<br/>message router"]
+    SERVICE["ArtService<br/>use-case orchestration"]
+    MANAGER["ArtManager<br/>state + provider delegation"]
+    PROVIDER["ArtProvider<br/>GoogleArtsProvider / MetMuseumProvider"]
+    CACHE["CacheManager"]
+    STORAGE["ExtensionStorage<br/>chrome.storage + Cache API"]
+    API["External APIs<br/>Google Arts / Met Museum"]
+
+    UI -- "initializeArt / rotateToNext / switchProvider / setTurnoverAlways" --> BG
+    BG --> SERVICE
+    SERVICE --> MANAGER
+    MANAGER --> PROVIDER
+    PROVIDER --> CACHE
+    CACHE --> STORAGE
+    PROVIDER --> API
+    SERVICE --> BG
+    BG -- "initializeArtResponse / artUpdated / settingsUpdated" --> UI
+```
 
 ### Data Flow
 
-1. **Initialize**: Manager starts up and registers available providers
-2. **Route Operations**: All art operations flow through the current active provider
-3. **State Persistence**: User settings and current state persist automatically across sessions
-4. **Caching**: Art metadata and images are cached per-provider with 24-hour expiry
+1. UI sends typed runtime message.
+2. Background router forwards to `ArtService`.
+3. `ArtService` coordinates policy (daily/per-tab rotation, prefetch, switching).
+4. `ArtManager` reads/writes state and delegates provider operations.
+5. Provider loads data/images using `CacheManager` + `ExtensionStorage`.
+6. Background broadcasts typed response/update events back to new-tab pages.
 
 ### Storage
 

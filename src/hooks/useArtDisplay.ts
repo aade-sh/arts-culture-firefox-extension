@@ -4,10 +4,14 @@ import { MetMuseumAsset } from '../models/met-museum-asset'
 import { ArtAssetJson } from '../models/json-data'
 import {
   ArtAsset,
-  ExtensionMessage,
   ProviderName,
   UserSettings,
 } from '../types'
+import {
+  ExtensionMessage,
+  RuntimeMessage,
+  RuntimeMessageType,
+} from '../types/runtime-messages'
 
 // Factory to reconstruct asset objects with their methods
 function artAssetFactory(assetData: ArtAssetJson): ArtAsset {
@@ -20,37 +24,6 @@ function artAssetFactory(assetData: ArtAssetJson): ArtAsset {
       throw new Error(`Unknown art provider: ${(assetData as any).provider}`)
   }
 }
-
-interface InitializeArtResponse {
-  type: 'initializeArtResponse'
-  data: {
-    error?: string
-    asset?: ArtAssetJson
-    imageUrl?: string | null
-    totalAssets?: number
-    currentIndex?: number
-    userSettings?: UserSettings
-  }
-}
-
-interface ArtUpdatedMessage {
-  type: 'artUpdated'
-  asset: ArtAssetJson
-  imageUrl: string | null
-  totalAssets: number
-  currentIndex: number
-  userSettings: UserSettings
-}
-
-interface SettingsUpdatedMessage {
-  type: 'settingsUpdated'
-  userSettings: UserSettings
-}
-
-type RuntimeMessage =
-  | InitializeArtResponse
-  | ArtUpdatedMessage
-  | SettingsUpdatedMessage
 
 interface ArtState {
   currentAsset: ArtAsset | null
@@ -77,7 +50,9 @@ export function useArtDisplay() {
     setState((prev) => ({ ...prev, loading: true, error: null }))
 
     try {
-      const message: ExtensionMessage = { type: 'initializeArt' }
+      const message: ExtensionMessage = {
+        type: RuntimeMessageType.INITIALIZE_ART,
+      }
       await chrome.runtime.sendMessage(message)
     } catch (error) {
       console.error(
@@ -93,7 +68,9 @@ export function useArtDisplay() {
 
   const rotateToNext = useCallback(async () => {
     try {
-      const message: ExtensionMessage = { type: 'rotateToNext' }
+      const message: ExtensionMessage = {
+        type: RuntimeMessageType.ROTATE_TO_NEXT,
+      }
       chrome.runtime.sendMessage(message)
     } catch (error) {
       console.error('Error sending message to event listeners whicle rotating')
@@ -104,7 +81,7 @@ export function useArtDisplay() {
     try {
       setState((prev) => ({ ...prev, loading: true, error: null }))
       const message: ExtensionMessage = {
-        type: 'switchProvider',
+        type: RuntimeMessageType.SWITCH_PROVIDER,
         provider,
       }
       await chrome.runtime.sendMessage(message)
@@ -135,7 +112,7 @@ export function useArtDisplay() {
 
       try {
         const message: ExtensionMessage = {
-          type: 'setTurnoverAlways',
+          type: RuntimeMessageType.SET_TURNOVER_ALWAYS,
           turnoverAlwaysEnabled: enabled,
         }
         await chrome.runtime.sendMessage(message)
@@ -158,7 +135,7 @@ export function useArtDisplay() {
   // Listen for updates from background
   useEffect(() => {
     const listener = (message: RuntimeMessage) => {
-      if (message.type === 'initializeArtResponse') {
+      if (message.type === RuntimeMessageType.INITIALIZE_ART_RESPONSE) {
         if (message.data.error) {
           setState((prev) => ({
             ...prev,
@@ -181,7 +158,7 @@ export function useArtDisplay() {
             error: null,
           }))
         }
-      } else if (message.type === 'artUpdated') {
+      } else if (message.type === RuntimeMessageType.ART_UPDATED) {
         const asset = artAssetFactory(message.asset)
         setState((prev) => ({
           ...prev,
@@ -193,7 +170,7 @@ export function useArtDisplay() {
           loading: false,
           error: null,
         }))
-      } else if (message.type === 'settingsUpdated') {
+      } else if (message.type === RuntimeMessageType.SETTINGS_UPDATED) {
         setState((prev) => ({
           ...prev,
           userSettings: {

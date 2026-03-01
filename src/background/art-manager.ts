@@ -1,36 +1,66 @@
 import { GoogleArtsProvider } from './providers/google-arts-provider'
 import { MetMuseumProvider } from './providers/met-museum-provider'
 import { ExtensionStorage } from './storage'
+import { CacheManager } from './cache-manager'
 import {
   ArtAsset,
   ArtProvider,
   ArtManager as IArtManager,
   UserSettings,
-  UserSettingUpdate,
   ProviderName,
   STORAGE_KEYS,
   DEFAULT_PROVIDER,
+  PROVIDERS,
 } from '../types'
 
 interface ArtState {
   provider: ProviderName
   currentIndex: number
   turnoverAlways: boolean
-  lastUpdated: number
+  // Timestamp for rotation policy decisions.
+  lastRotatedAt: number
+  // Timestamp for debugging/state-write observability.
+  lastStateUpdatedAt: number
+}
+
+interface PersistedArtState {
+  provider?: unknown
+  currentIndex?: unknown
+  turnoverAlways?: unknown
+  lastRotatedAt?: unknown
+  lastStateUpdatedAt?: unknown
+  // Backward-compatible migration from older schema.
+  lastUpdated?: unknown
+}
+
+const createDefaultState = (): ArtState => {
+  const now = Date.now()
+  return {
+    provider: DEFAULT_PROVIDER,
+    currentIndex: 0,
+    turnoverAlways: false,
+    lastRotatedAt: now,
+    lastStateUpdatedAt: now,
+  }
+}
+
+const isProviderName = (value: unknown): value is ProviderName => {
+  return Object.values(PROVIDERS).includes(value as ProviderName)
+}
+
+const isNonNegativeNumber = (value: unknown): value is number => {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
 export class ArtManager implements IArtManager {
   private providers = new Map<ProviderName, ArtProvider>()
-  private state: ArtState = {
-    provider: DEFAULT_PROVIDER,
-    currentIndex: 0,
-    turnoverAlways: false,
-    lastUpdated: Date.now(),
-  }
+  private state: ArtState = createDefaultState()
+  private initialized = false
+  private pendingInitialization: Promise<void> | null = null
 
-  constructor() {
-    this.registerProvider(new GoogleArtsProvider())
-    this.registerProvider(new MetMuseumProvider())
+  constructor(providers?: ArtProvider[]) {
+    const resolvedProviders = providers ?? createDefaultProviders()
+    resolvedProviders.forEach((provider) => this.registerProvider(provider))
   }
 
   private registerProvider(provider: ArtProvider): void {
@@ -51,32 +81,70 @@ export class ArtManager implements IArtManager {
     return provider
   }
 
-  getAllProviders(): ArtProvider[] {
-    return Array.from(this.providers.values())
+  private migratePersistedState(raw: PersistedArtState): ArtState {
+    const fallback = createDefaultState()
+
+    return {
+      provider: isProviderName(raw.provider) ? raw.provider : fallback.provider,
+      currentIndex: isNonNegativeNumber(raw.currentIndex)
+        ? raw.currentIndex
+        : fallback.currentIndex,
+      turnoverAlways:
+        typeof raw.turnoverAlways === 'boolean'
+          ? raw.turnoverAlways
+          : fallback.turnoverAlways,
+      lastRotatedAt: isNonNegativeNumber(raw.lastRotatedAt)
+        ? raw.lastRotatedAt
+        : isNonNegativeNumber(raw.lastUpdated)
+          ? raw.lastUpdated
+          : fallback.lastRotatedAt,
+      lastStateUpdatedAt: isNonNegativeNumber(raw.lastStateUpdatedAt)
+        ? raw.lastStateUpdatedAt
+        : fallback.lastStateUpdatedAt,
+    }
   }
 
-  getCurrentProviderSync(): ArtProvider {
-    return this.currentProvider
+  async ensureInitialized(): Promise<void> {
+    if (this.initialized) {
+      return
+    }
+
+    if (this.pendingInitialization) {
+      await this.pendingInitialization
+      return
+    }
+
+    this.pendingInitialization = this.loadState()
+      .then(() => {
+        this.initialized = true
+      })
+      .finally(() => {
+        this.pendingInitialization = null
+      })
+
+    await this.pendingInitialization
   }
 
   async loadState(): Promise<void> {
     try {
       const stored = await ExtensionStorage.readData(STORAGE_KEYS.ART_STATE)
       if (stored) {
-        this.state = { ...this.state, ...JSON.parse(stored) }
+        this.state = this.migratePersistedState(
+          JSON.parse(stored) as PersistedArtState,
+        )
       } else {
-        // No stored state exists, save the defaults
+        this.state = createDefaultState()
         await this.saveState()
       }
     } catch (error) {
       console.warn('Failed to load state, using defaults:', error)
-      // Save defaults even if loading failed
+      this.state = createDefaultState()
       await this.saveState()
     }
   }
 
   async saveState(): Promise<void> {
-    this.state.lastUpdated = Date.now()
+    this.state.lastStateUpdatedAt = Date.now()
     await ExtensionStorage.writeData(
       STORAGE_KEYS.ART_STATE,
       JSON.stringify(this.state),
@@ -102,6 +170,13 @@ export class ArtManager implements IArtManager {
     return this.currentProvider.getAsset(index)
   }
 
+  async findNextValidAssetIndex(
+    startIndex: number,
+    totalAssets: number,
+  ): Promise<number> {
+    return this.currentProvider.findNextValidAssetIndex(startIndex, totalAssets)
+  }
+
   async loadImage(assetId: number): Promise<boolean> {
     return this.currentProvider.loadImage(assetId)
   }
@@ -124,17 +199,14 @@ export class ArtManager implements IArtManager {
     return this.state.currentIndex
   }
 
-  async getLastUpdated(): Promise<number> {
-    return this.state.lastUpdated
+  async getLastRotatedAt(): Promise<number> {
+    return this.state.lastRotatedAt
   }
 
   async setCurrentIndex(index: number): Promise<void> {
     this.state.currentIndex = index
+    this.state.lastRotatedAt = Date.now()
     await this.saveState()
-  }
-
-  async getTurnoverAlways(): Promise<boolean> {
-    return this.state.turnoverAlways
   }
 
   async setTurnoverAlways(value: boolean): Promise<void> {
@@ -148,14 +220,9 @@ export class ArtManager implements IArtManager {
       ART_PROVIDER: this.state.provider,
     }
   }
-
-  async setUserSetting(setting: UserSettingUpdate): Promise<void> {
-    if (setting.key === 'turnoverAlways') {
-      await this.setTurnoverAlways(setting.value)
-    } else if (setting.key === 'artProvider') {
-      await this.setCurrentProvider(setting.value)
-    }
-  }
 }
 
-export const instance = new ArtManager()
+function createDefaultProviders(): ArtProvider[] {
+  const cache = new CacheManager()
+  return [new GoogleArtsProvider(cache), new MetMuseumProvider(cache)]
+}

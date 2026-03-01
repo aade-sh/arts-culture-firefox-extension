@@ -1,232 +1,78 @@
-import { instance as ArtManager } from './art-manager'
+import { ProviderName } from '../types'
 import {
-  ArtAsset,
+  ArtUpdatedMessage,
   ExtensionMessage,
-  ProviderName,
-  UserSettings,
-} from '../types'
+  RuntimeMessageType,
+  SettingsUpdatedMessage,
+} from '../types/runtime-messages'
+import { artService } from './container'
 
-type InitializeArtResponse =
-  | { error: string }
-  | {
-      asset: ArtAsset
-      imageUrl: string | null
-      totalAssets: number
-      currentIndex: number
-      userSettings: UserSettings
-    }
+chrome.runtime.onInstalled.addListener(() => {
+  void handleInstalled()
+})
 
-const ExtMessageType = {
-  INITIALIZE_ART: 'initializeArt',
-  ROTATE_TO_NEXT: 'rotateToNext',
-  SWITCH_PROVIDER: 'switchProvider',
-  SET_TURNOVER_ALWAYS: 'setTurnoverAlways',
-  ART_UPDATED: 'artUpdated',
-  SETTINGS_UPDATED: 'settingsUpdated',
-} as const
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender) => {
+  void handleExtensionMessage(message, sender)
+  return false
+})
 
-let currentBackgroundAssetIndex = 0
-
-chrome.runtime.onInstalled.addListener(async (details) => {
+async function handleInstalled(): Promise<void> {
   try {
-    if (details.reason === 'install') {
-      await ArtManager.loadState()
-    }
-
-    const syncSuccess = await ArtManager.syncData()
-    if (!syncSuccess) {
-      console.error('Failed to sync asset data during installation')
-      return
-    }
-
-    const totalAssets = await ArtManager.syncedAssetCount()
-
-    let currentAssetIndex = await ArtManager.getCurrentIndex()
-    if (currentAssetIndex >= totalAssets) {
-      currentAssetIndex = 0
-    }
-    await ArtManager.setCurrentIndex(currentAssetIndex)
-    currentBackgroundAssetIndex = currentAssetIndex
-
-    const currentLoad = await ArtManager.loadImage(currentAssetIndex)
-
-    if (!currentLoad) {
-      console.warn('Failed to pre-load current image')
-    }
+    await artService.handleInstalled()
   } catch (error) {
     console.error('Error during extension setup:', error)
   }
-})
-
-chrome.runtime.onMessage.addListener(
-  (message: ExtensionMessage, sender) => {
-    switch (message.type) {
-      case ExtMessageType.INITIALIZE_ART: {
-        const tabId = sender.tab?.id
-        if (tabId) {
-          handleInitializeArtAsync()
-            .then((response) => {
-              chrome.tabs.sendMessage(tabId, {
-                type: 'initializeArtResponse',
-                data: response,
-              })
-            })
-            .catch((error) => {
-              console.error('Error initializing art:', error)
-              chrome.tabs.sendMessage(tabId, {
-                type: 'initializeArtResponse',
-                data: { error: 'Failed to load artwork: ' + error.message },
-              })
-            })
-        }
-        break
-      }
-      case ExtMessageType.ROTATE_TO_NEXT:
-        handleRotateToNext()
-        break
-      case ExtMessageType.SWITCH_PROVIDER:
-        handleSwitchProvider(message.provider)
-        break
-      case ExtMessageType.SET_TURNOVER_ALWAYS:
-        handleSetTurnoverAlways(message.turnoverAlwaysEnabled)
-        break
-    }
-
-    return false
-  },
-)
-
-async function handleInitializeArtAsync(): Promise<InitializeArtResponse> {
-  const syncSuccess = await ArtManager.syncData()
-  if (!syncSuccess) {
-    return { error: 'Failed to sync art data' }
-  }
-
-  const totalAssets = await ArtManager.syncedAssetCount()
-  if (totalAssets === 0) {
-    return { error: 'No assets available from current provider' }
-  }
-
-  currentBackgroundAssetIndex = await ArtManager.getCurrentIndex()
-  const userSettings = await ArtManager.getUserSettings()
-
-  const ONE_DAY = 24 * 60 * 60 * 1000
-  const lastUpdated = await ArtManager.getLastUpdated()
-  const shouldRotateByTime = Date.now() - lastUpdated > ONE_DAY
-  const shouldRotate = userSettings.TURNOVER_ALWAYS === true || shouldRotateByTime
-
-  if (shouldRotate) {
-    let nextIndex = currentBackgroundAssetIndex + 1
-    if (nextIndex >= totalAssets) {
-      nextIndex = 0
-    }
-
-    const validNextIndex = await findNextValidAsset(nextIndex, totalAssets)
-    if (validNextIndex === -1) {
-      return { error: 'No valid assets available' }
-    }
-    currentBackgroundAssetIndex = validNextIndex
-    await ArtManager.setCurrentIndex(validNextIndex)
-  }
-
-  let asset = await ArtManager.getAsset(currentBackgroundAssetIndex)
-
-  if (!asset) {
-    const validIndex = await findNextValidAsset(
-      currentBackgroundAssetIndex,
-      totalAssets,
-    )
-    if (validIndex === -1) {
-      return { error: 'No valid assets available' }
-    }
-    currentBackgroundAssetIndex = validIndex
-    await ArtManager.setCurrentIndex(validIndex)
-    asset = await ArtManager.getAsset(validIndex)
-  }
-
-  if (!asset) {
-    return { error: 'Failed to load asset data' }
-  }
-
-  await ArtManager.loadImage(currentBackgroundAssetIndex)
-  const imageUrl = await ArtManager.getDisplayImageUrl(
-    currentBackgroundAssetIndex,
-  )
-
-  const latestUserSettings = await ArtManager.getUserSettings()
-  if (latestUserSettings.TURNOVER_ALWAYS === true) {
-    void prefetchNextAssetImage(totalAssets, currentBackgroundAssetIndex)
-  }
-
-  return {
-    asset: asset,
-    imageUrl,
-    totalAssets,
-    currentIndex: currentBackgroundAssetIndex,
-    userSettings: latestUserSettings,
-  }
 }
 
-async function handleSetTurnoverAlways(
-  turnoverAlwaysEnabled: boolean,
+async function handleExtensionMessage(
+  message: ExtensionMessage,
+  sender: chrome.runtime.MessageSender,
 ): Promise<void> {
-  try {
-    await ArtManager.setTurnoverAlways(turnoverAlwaysEnabled)
-    const userSettings = await ArtManager.getUserSettings()
+  switch (message.type) {
+    case RuntimeMessageType.INITIALIZE_ART: {
+      const tabId = sender.tab?.id
+      if (!tabId) {
+        return
+      }
 
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        if (tab.id && tab.url?.includes('newtab')) {
-          chrome.tabs.sendMessage(tab.id, {
-            type: ExtMessageType.SETTINGS_UPDATED,
-            userSettings,
-          })
-        }
-      })
-    })
-  } catch (error) {
-    console.error('Error updating turnover setting:', error)
+      try {
+        const response = await artService.initializeArt()
+        chrome.tabs.sendMessage(tabId, {
+          type: RuntimeMessageType.INITIALIZE_ART_RESPONSE,
+          data: response,
+        })
+      } catch (error) {
+        const messageText =
+          error instanceof Error ? error.message : 'Unknown error'
+        console.error('Error initializing art:', error)
+        chrome.tabs.sendMessage(tabId, {
+          type: RuntimeMessageType.INITIALIZE_ART_RESPONSE,
+          data: { error: 'Failed to load artwork: ' + messageText },
+        })
+      }
+      return
+    }
+
+    case RuntimeMessageType.ROTATE_TO_NEXT:
+      await handleRotateToNext()
+      return
+
+    case RuntimeMessageType.SWITCH_PROVIDER:
+      await handleSwitchProvider(message.provider)
+      return
+
+    case RuntimeMessageType.SET_TURNOVER_ALWAYS:
+      await handleSetTurnoverAlways(message.turnoverAlwaysEnabled)
+      return
   }
 }
 
 async function handleRotateToNext(): Promise<void> {
   try {
-    const totalAssets = await ArtManager.syncedAssetCount()
-    let newIndex = currentBackgroundAssetIndex + 1
-    if (newIndex >= totalAssets) {
-      newIndex = 0
+    const message = await artService.rotateToNext()
+    if (message) {
+      broadcastToNewTabPages(message)
     }
-
-    // Find next valid asset
-    const validIndex = await findNextValidAsset(newIndex, totalAssets)
-    if (validIndex === -1) {
-      console.error('No valid assets found')
-      return
-    }
-
-    currentBackgroundAssetIndex = validIndex
-    await ArtManager.setCurrentIndex(validIndex)
-
-    const asset = await ArtManager.getAsset(validIndex)
-    await ArtManager.loadImage(validIndex)
-    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
-    const userSettings = await ArtManager.getUserSettings()
-
-    // Notify all new tab pages
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        if (tab.id && tab.url?.includes('newtab')) {
-          chrome.tabs.sendMessage(tab.id, {
-            type: ExtMessageType.ART_UPDATED,
-            asset,
-            imageUrl,
-            totalAssets,
-            currentIndex: validIndex,
-            userSettings,
-          })
-        }
-      })
-    })
   } catch (error) {
     console.error('Error rotating to next:', error)
   }
@@ -234,97 +80,34 @@ async function handleRotateToNext(): Promise<void> {
 
 async function handleSwitchProvider(providerName: ProviderName): Promise<void> {
   try {
-    await ArtManager.setCurrentProvider(providerName)
-    await ArtManager.syncData()
-
-    const totalAssets = await ArtManager.syncedAssetCount()
-    const validIndex = await findNextValidAsset(0, totalAssets)
-
-    if (validIndex === -1) {
-      console.error('No valid assets in new provider')
-      return
+    const message = await artService.switchProvider(providerName)
+    if (message) {
+      broadcastToNewTabPages(message)
     }
-
-    currentBackgroundAssetIndex = validIndex
-    await ArtManager.setCurrentIndex(validIndex)
-
-    const asset = await ArtManager.getAsset(validIndex)
-    await ArtManager.loadImage(validIndex)
-    const imageUrl = await ArtManager.getDisplayImageUrl(validIndex)
-    const userSettings = await ArtManager.getUserSettings()
-
-    // Notify all new tab pages
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        if (tab.id && tab.url?.includes('newtab')) {
-          chrome.tabs.sendMessage(tab.id, {
-            type: ExtMessageType.ART_UPDATED,
-            asset,
-            imageUrl,
-            totalAssets,
-            currentIndex: validIndex,
-            userSettings,
-          })
-        }
-      })
-    })
   } catch (error) {
     console.error('Error switching provider:', error)
   }
 }
 
-async function findNextValidAsset(
-  startIndex: number,
-  totalAssets: number,
-): Promise<number> {
-  const provider = ArtManager.getCurrentProviderSync()
-
-  // For Google Arts, assets are pre-validated, so just return the index
-  if (provider.name === 'google-arts') {
-    return startIndex
+async function handleSetTurnoverAlways(
+  turnoverAlwaysEnabled: boolean,
+): Promise<void> {
+  try {
+    const message = await artService.setTurnoverAlways(turnoverAlwaysEnabled)
+    broadcastToNewTabPages(message)
+  } catch (error) {
+    console.error('Error updating turnover setting:', error)
   }
-
-  // For Met Museum, search for valid assets
-  let attempts = 0
-  const maxAttempts = 10
-  let index = startIndex
-
-  while (attempts < maxAttempts) {
-    const asset = await ArtManager.getAsset(index)
-    if (asset) {
-      return index
-    }
-
-    index++
-    if (index >= totalAssets) {
-      index = 0
-    }
-    attempts++
-  }
-
-  return -1 // No valid asset found
 }
 
-async function prefetchNextAssetImage(
-  totalAssets: number,
-  fromIndex: number,
-): Promise<void> {
-  if (totalAssets <= 1) {
-    return
-  }
-
-  let nextIndex = fromIndex + 1
-  if (nextIndex >= totalAssets) {
-    nextIndex = 0
-  }
-
-  const prefetchedIndex = await findNextValidAsset(nextIndex, totalAssets)
-  if (prefetchedIndex === -1 || prefetchedIndex === fromIndex) {
-    return
-  }
-
-  const loaded = await ArtManager.loadImage(prefetchedIndex)
-  if (!loaded) {
-    console.warn(`Failed to prefetch image for asset index ${prefetchedIndex}`)
-  }
+function broadcastToNewTabPages(
+  message: ArtUpdatedMessage | SettingsUpdatedMessage,
+): void {
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((tab) => {
+      if (tab.id && tab.url?.includes('newtab')) {
+        chrome.tabs.sendMessage(tab.id, message)
+      }
+    })
+  })
 }

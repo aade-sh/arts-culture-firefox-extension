@@ -4,22 +4,22 @@ import {
   ProviderName,
   CacheKeyType,
 } from '../../types'
-import { Cache } from '../cache-manager'
+import { CacheManager } from '../cache-manager'
 
 export abstract class ArtProvider implements IArtProvider {
   name: ProviderName
   displayName: string
   protected DATA_REQUEST_OPTIONS: RequestInit
-  protected cache: typeof Cache
+  protected cache: CacheManager
 
-  constructor(name: ProviderName, displayName: string) {
+  constructor(name: ProviderName, displayName: string, cache: CacheManager) {
     this.name = name
     this.displayName = displayName
     this.DATA_REQUEST_OPTIONS = {
       method: 'GET',
       headers: { Accept: 'application/json' },
     }
-    this.cache = Cache
+    this.cache = cache
   }
 
   abstract syncData(): Promise<boolean>
@@ -27,6 +27,34 @@ export abstract class ArtProvider implements IArtProvider {
   abstract syncedAssetCount(): Promise<number>
   abstract getDisplayImageUrl(assetId: number): Promise<string | null>
   abstract getDetailsUrl(asset: ArtAsset): string
+
+  async findNextValidAssetIndex(
+    startIndex: number,
+    totalAssets: number,
+  ): Promise<number> {
+    if (totalAssets <= 0) {
+      return -1
+    }
+
+    let attempts = 0
+    const maxAttempts = 10
+    let index = startIndex
+
+    while (attempts < maxAttempts) {
+      const asset = await this.getAsset(index)
+      if (asset) {
+        return index
+      }
+
+      index++
+      if (index >= totalAssets) {
+        index = 0
+      }
+      attempts++
+    }
+
+    return -1
+  }
 
   protected async getCachedData<T = unknown>(
     key: CacheKeyType,

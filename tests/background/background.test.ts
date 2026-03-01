@@ -1,40 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createChromeMock, flushPromises } from '../utils/chrome'
 
-const createAsset = (id: string, provider = 'google-arts') => ({
-  id,
-  title: `Title ${id}`,
-  creator: 'Artist',
-  attribution: '',
-  remoteImageUrl: `https://img.example/${id}`,
-  detailsUrl: `detail-${id}`,
-  provider,
-  isImageCached: vi.fn().mockResolvedValue(false),
-  getDisplayImageUrl: vi.fn().mockResolvedValue(`https://img.example/${id}`),
-  getProcessedImageUrl: vi.fn().mockReturnValue(`https://img.example/${id}`),
-  getDetailsUrl: vi.fn().mockReturnValue(`https://details.example/${id}`),
-  toJSON: vi.fn().mockReturnValue({ id, provider }),
-  isValid: vi.fn().mockReturnValue(true),
-})
-
-const mockManager = {
-  loadState: vi.fn(),
-  syncData: vi.fn(),
-  syncedAssetCount: vi.fn(),
-  getCurrentIndex: vi.fn(),
-  setCurrentIndex: vi.fn(),
-  loadImage: vi.fn(),
-  getAsset: vi.fn(),
-  getDisplayImageUrl: vi.fn(),
-  getUserSettings: vi.fn(),
-  getLastUpdated: vi.fn(),
+const mockArtService = {
+  handleInstalled: vi.fn(),
+  initializeArt: vi.fn(),
+  rotateToNext: vi.fn(),
+  switchProvider: vi.fn(),
   setTurnoverAlways: vi.fn(),
-  setCurrentProvider: vi.fn(),
-  getCurrentProviderSync: vi.fn(),
 }
 
-vi.mock('../../src/background/art-manager', () => ({
-  instance: mockManager,
+vi.mock('../../src/background/container', () => ({
+  artService: mockArtService,
 }))
 
 describe('background message handlers', () => {
@@ -49,47 +25,64 @@ describe('background message handlers', () => {
     )
     vi.stubGlobal('chrome', chromeMock)
 
-    mockManager.loadState.mockResolvedValue(undefined)
-    mockManager.syncData.mockResolvedValue(true)
-    mockManager.syncedAssetCount.mockResolvedValue(3)
-    mockManager.getCurrentIndex.mockResolvedValue(0)
-    mockManager.setCurrentIndex.mockResolvedValue(undefined)
-    mockManager.loadImage.mockResolvedValue(true)
-    mockManager.getAsset.mockImplementation(async (index: number) =>
-      createAsset(String(index)),
-    )
-    mockManager.getDisplayImageUrl.mockImplementation(async (index: number) =>
-      `data:image/${index}`,
-    )
-    mockManager.getUserSettings.mockResolvedValue({
-      ART_PROVIDER: 'google-arts',
-      TURNOVER_ALWAYS: false,
+    mockArtService.handleInstalled.mockResolvedValue(undefined)
+    mockArtService.initializeArt.mockResolvedValue({
+      asset: { id: '1', provider: 'google-arts' },
+      imageUrl: 'data:image/1',
+      totalAssets: 3,
+      currentIndex: 1,
+      userSettings: {
+        ART_PROVIDER: 'google-arts',
+        TURNOVER_ALWAYS: true,
+      },
     })
-    mockManager.getLastUpdated.mockResolvedValue(Date.now())
-    mockManager.setTurnoverAlways.mockResolvedValue(undefined)
-    mockManager.setCurrentProvider.mockResolvedValue(undefined)
-    mockManager.getCurrentProviderSync.mockReturnValue({ name: 'google-arts' })
+    mockArtService.rotateToNext.mockResolvedValue({
+      type: 'artUpdated',
+      asset: { id: '1', provider: 'google-arts' },
+      imageUrl: 'data:image/1',
+      totalAssets: 3,
+      currentIndex: 1,
+      userSettings: {
+        ART_PROVIDER: 'google-arts',
+        TURNOVER_ALWAYS: false,
+      },
+    })
+    mockArtService.switchProvider.mockResolvedValue({
+      type: 'artUpdated',
+      asset: { id: '0', provider: 'met-museum' },
+      imageUrl: 'data:image/0',
+      totalAssets: 2,
+      currentIndex: 0,
+      userSettings: {
+        ART_PROVIDER: 'met-museum',
+        TURNOVER_ALWAYS: false,
+      },
+    })
+    mockArtService.setTurnoverAlways.mockResolvedValue({
+      type: 'settingsUpdated',
+      userSettings: {
+        ART_PROVIDER: 'google-arts',
+        TURNOVER_ALWAYS: true,
+      },
+    })
 
     await import('../../src/background/background')
   })
 
-  it('initializes art and prefetches next image when turnoverAlways is enabled', async () => {
-    mockManager.getUserSettings.mockResolvedValue({
-      ART_PROVIDER: 'google-arts',
-      TURNOVER_ALWAYS: true,
-    })
-
+  it('initializes art and responds to the sender tab', async () => {
     const addListener = chrome.runtime.onMessage.addListener as ReturnType<
       typeof vi.fn
     >
     const listener = addListener.mock.calls[0][0]
 
     listener({ type: 'initializeArt' }, { tab: { id: 11 } })
-    await flushPromises(5)
+    await flushPromises(20)
 
-    expect(mockManager.syncData).toHaveBeenCalled()
-    expect(mockManager.getCurrentIndex).toHaveBeenCalled()
-    expect(mockManager.setCurrentIndex).toHaveBeenCalledWith(1)
+    expect(mockArtService.initializeArt).toHaveBeenCalled()
+    expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
+      11,
+      expect.objectContaining({ type: 'initializeArtResponse' }),
+    )
   })
 
   it('broadcasts settingsUpdated for setTurnoverAlways', async () => {
@@ -109,9 +102,9 @@ describe('background message handlers', () => {
     const listener = addListener.mock.calls[0][0]
 
     listener({ type: 'setTurnoverAlways', turnoverAlwaysEnabled: true }, {})
-    await flushPromises(4)
+    await flushPromises(20)
 
-    expect(mockManager.setTurnoverAlways).toHaveBeenCalledWith(true)
+    expect(mockArtService.setTurnoverAlways).toHaveBeenCalledWith(true)
     expect(chrome.tabs.sendMessage).toHaveBeenCalledTimes(1)
     expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
       101,
@@ -126,10 +119,12 @@ describe('background message handlers', () => {
     const listener = addListener.mock.calls[0][0]
 
     listener({ type: 'rotateToNext' }, {})
-    await flushPromises(4)
+    await flushPromises(20)
 
-    expect(mockManager.setCurrentIndex).toHaveBeenCalledWith(1)
-    expect(mockManager.getAsset).toHaveBeenCalledWith(1)
-    expect(mockManager.getDisplayImageUrl).toHaveBeenCalledWith(1)
+    expect(mockArtService.rotateToNext).toHaveBeenCalled()
+    expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ type: 'artUpdated' }),
+    )
   })
 })

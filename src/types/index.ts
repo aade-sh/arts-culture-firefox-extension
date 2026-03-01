@@ -48,32 +48,13 @@ export interface UserSettings {
   TURNOVER_ALWAYS?: boolean
 }
 
-export type UserSettingUpdate = 
-  | { key: 'turnoverAlways'; value: boolean }
-  | { key: 'artProvider'; value: ProviderName }
-
-export interface ArtState {
-  currentAssetIndex: number
-  totalAssets: number
-  currentAsset: ArtAsset | null
-  userSettings: UserSettings
-  imageUrl: string | null
-  loading: boolean
-  error: string | null
-}
-
-export type ExtensionMessage =
-  | { type: 'initializeArt' }
-  | { type: 'rotateToNext' }
-  | { type: 'switchProvider'; provider: ProviderName }
-  | { type: 'setTurnoverAlways'; turnoverAlwaysEnabled: boolean }
-
 export interface ArtProvider {
   name: ProviderName
   displayName: string
   syncData(): Promise<boolean>
   getAsset(index: number): Promise<ArtAsset | null>
   syncedAssetCount(): Promise<number>
+  findNextValidAssetIndex(startIndex: number, totalAssets: number): Promise<number>
   getDisplayImageUrl(assetId: number): Promise<string | null>
   getDetailsUrl(asset: ArtAsset): string
   loadImage(assetId: number): Promise<boolean>
@@ -84,27 +65,13 @@ export interface ArtManager {
   syncData(): Promise<boolean>
   syncedAssetCount(): Promise<number>
   getCurrentIndex(): Promise<number>
+  getLastRotatedAt(): Promise<number>
   setCurrentIndex(index: number): Promise<void>
   getAsset(index: number): Promise<ArtAsset | null>
+  findNextValidAssetIndex(startIndex: number, totalAssets: number): Promise<number>
   loadImage(index: number): Promise<boolean>
   getDisplayImageUrl(index: number): Promise<string | null>
   getDetailsUrl(index: number): Promise<string | null>
-  setCurrentProvider(provider: string): Promise<void>
+  setCurrentProvider(provider: ProviderName): Promise<void>
   setTurnoverAlways(value: boolean): Promise<void>
-  setUserSetting(setting: UserSettingUpdate): Promise<void>
 }
-
-// Global declarations
-declare global {
-  interface Window {
-    ArtManager: {
-      instance: ArtManager
-    }
-    NewTabSetting: {
-      ART_PROVIDER: string
-      TURNOVER_ALWAYS: string
-    }
-  }
-}
-
-export {}
